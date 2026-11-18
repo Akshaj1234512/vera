@@ -72,7 +72,7 @@ def main() -> None:
     metadata_path, trace_path = sys.argv[1:3]
     sys.argv[1:3] = []
     try:
-        package = distribution("moshi")
+        package = distribution("moshi-personaplex")
         source = json.loads(package.read_text("direct_url.json") or "{}")
         git_info = source.get("vcs_info", {})
         provenance = {"moshi_version": package.version, "source_revision": git_info.get("commit_id")}

@@ -18,7 +18,7 @@ def run_replay(args: argparse.Namespace) -> None:
     policy = "rules"
     if args.checkpoint:
         from .training import checkpoint_scores
-        scores, threshold = checkpoint_scores(args.checkpoint, features, args.embeddings, args.vad_db)
+        features, scores, threshold = checkpoint_scores(args.checkpoint, features, args.embeddings, args.vad_db)
         policy = args.checkpoint.stem
     else:
         if args.embeddings:
@@ -44,7 +44,7 @@ def run_demo(args: argparse.Namespace) -> None:
 def run_audit(args: argparse.Namespace) -> None:
     from .training import audit
 
-    report = audit(args.manifest, args.vad_db, args.seed, args.tolerance)
+    report = audit(args.manifest, args.vad_db, args.seed, args.tolerance, args.candidates)
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(report, indent=2) + "\n")
     for split, rows in report["splits"].items():
@@ -57,7 +57,7 @@ def run_audit(args: argparse.Namespace) -> None:
 def run_training(args: argparse.Namespace) -> None:
     from .training import train
 
-    report = train(args.manifest, args.out, args.epochs, args.seed, args.tolerance, args.vad_db, args.embeddings)
+    report = train(args.manifest, args.out, args.epochs, args.seed, args.tolerance, args.vad_db, args.embeddings, args.candidates)
     print(f"Held-out event F1 ({', '.join(report['origins'])}): rules {report['rules_test']['f1']:.3f}")
     for model in report["models"]:
         print(f"  {model['name']:<20} {model['test']['f1']:.3f}")
@@ -134,6 +134,7 @@ def main() -> None:
     training.add_argument("--seed", type=int, default=17)
     training.add_argument("--tolerance", type=float, default=0.30, help="event match tolerance in seconds")
     training.add_argument("--vad-db", type=float, default=-40)
+    training.add_argument("--candidates", choices=("pause", "cadence"), default="pause")
     training.add_argument("--embeddings", action="store_true", help="also compare models with embeddings")
     training.set_defaults(run=run_training)
 
@@ -178,6 +179,7 @@ def main() -> None:
     audit.add_argument("--seed", type=int, default=17)
     audit.add_argument("--vad-db", type=float, default=-40)
     audit.add_argument("--tolerance", type=float, default=0.30)
+    audit.add_argument("--candidates", choices=("pause", "cadence"), default="pause")
     audit.set_defaults(run=run_audit)
 
     args = parser.parse_args()

@@ -8,7 +8,7 @@ import numpy as np
 import torch
 from torch import nn
 
-from .audio import FEATURE_NAMES, HISTORY_FRAMES, Features, aligned_embeddings, context_windows
+from .audio import FEATURE_NAMES, HISTORY_FRAMES, Features, aligned_embeddings, context_windows, propose
 from .cues import RULE_THRESHOLD, quiet_agent, rule_scores, selected_candidates
 from .dataset import Clip, load_manifest, match_events, split_groups
 
@@ -107,7 +107,7 @@ def score_clips(model: PauseScorer, clips: list[Clip], embeddings: dict[str, np.
 
 
 def fit(architecture: str, splits: dict[str, list[Clip]], embeddings: dict[str, np.ndarray],
-        epochs: int, seed: int, tolerance: float, vad_db: float, output: Path) -> dict:
+        epochs: int, seed: int, tolerance: float, vad_db: float, mode: str, output: Path) -> dict:
     clips = splits["train"]
     windows = torch.from_numpy(np.concatenate([context_windows(clip.features) for clip in clips]))
     labels = torch.from_numpy(np.concatenate([labels_for_candidates(clip, tolerance) for clip in clips]))
@@ -157,10 +157,11 @@ def fit(architecture: str, splits: dict[str, list[Clip]], embeddings: dict[str, 
         for _ in range(100):
             model(history, state)
         ms_per_candidate = 10 * (perf_counter() - started)
-    name = architecture + ("-embeddings" if embeddings else "")
+    name = architecture + ("-cadence" if mode == "cadence" else "") + ("-embeddings" if embeddings else "")
     torch.save({
         "version": MODEL_VERSION, "architecture": architecture, "embedding_dim": states.shape[1],
         "embedding_mean": mean, "embedding_std": std, "threshold": threshold, "vad_db": vad_db,
+        "candidate_mode": mode,
         "weights": model.state_dict(),
     }, output / f"{name}.pt")
     return {
@@ -170,22 +171,22 @@ def fit(architecture: str, splits: dict[str, list[Clip]], embeddings: dict[str, 
     }
 
 
-def audit(manifest: Path, vad_db: float, seed: int, tolerance: float) -> dict:
+def audit(manifest: Path, vad_db: float, seed: int, tolerance: float, mode: str) -> dict:
     clips = load_manifest(manifest, vad_db)
     splits = split_groups(clips, seed)
     results = {
         "origins": sorted({clip.origin for clip in clips}),
-        "vad_db": vad_db, "match_tolerance_s": tolerance,
+        "vad_db": vad_db, "match_tolerance_s": tolerance, "candidate_mode": mode,
         "splits": {},
     }
     for name, portions in splits.items():
         rows = []
         for clip in portions:
-            features = clip.features
+            clip.features = features = propose(clip.features, mode)
             times = features.time_s[features.candidates]
             rows.append({
                 "id": clip.id, "group": clip.group,
-                "labels": len(clip.labels), "pause_candidates": len(times),
+                "labels": len(clip.labels), "candidates": len(times),
                 "matches_before_speech_gate": len(match_events(times, clip.labels, tolerance)),
                 "matches_after_speech_gate": int(labels_for_candidates(clip, tolerance).sum()),
             })
@@ -194,7 +195,7 @@ def audit(manifest: Path, vad_db: float, seed: int, tolerance: float) -> dict:
 
 
 def train(manifest: Path, output: Path, epochs: int, seed: int, tolerance: float,
-          vad_db: float, use_embeddings: bool) -> dict:
+          vad_db: float, use_embeddings: bool, mode: str = "pause") -> dict:
     if epochs <= 0 or tolerance < 0:
         raise ValueError("Use positive epochs and a nonnegative matching tolerance")
     torch.set_num_threads(1)
@@ -203,14 +204,16 @@ def train(manifest: Path, output: Path, epochs: int, seed: int, tolerance: float
     test = splits["test"]
     output.mkdir(parents=True, exist_ok=True)
     rules = metrics(test, {clip.id: rule_scores(clip.features) for clip in test}, RULE_THRESHOLD, tolerance)
+    for clip in clips:
+        clip.features = propose(clip.features, mode)
     configurations = [{}]
     if use_embeddings:
         configurations.append(embedding_inputs(splits))
-    models = [fit(architecture, splits, embeddings, epochs, seed, tolerance, vad_db, output)
+    models = [fit(architecture, splits, embeddings, epochs, seed, tolerance, vad_db, mode, output)
               for embeddings in configurations for architecture in ("linear", "gru")]
     report = {
         "origins": sorted({clip.origin for clip in clips}), "seed": seed,
-        "epochs": epochs, "match_tolerance_s": tolerance, "vad_db": vad_db,
+        "epochs": epochs, "match_tolerance_s": tolerance, "vad_db": vad_db, "candidate_mode": mode,
         "splits": {
             name: {
                 "clips": [clip.id for clip in portions], "groups": sorted({clip.group for clip in portions}),
@@ -224,12 +227,13 @@ def train(manifest: Path, output: Path, epochs: int, seed: int, tolerance: float
 
 
 def checkpoint_scores(path: Path, features: Features, embedding_path: Path | None,
-                      vad_db: float) -> tuple[np.ndarray, float]:
+                      vad_db: float) -> tuple[Features, np.ndarray, float]:
     checkpoint = torch.load(path, map_location="cpu", weights_only=True)
     if checkpoint["version"] != MODEL_VERSION:
         raise ValueError(f"{path}: unsupported checkpoint version")
     if not np.isclose(vad_db, checkpoint["vad_db"]):
         raise ValueError(f"Use --vad-db {checkpoint['vad_db']} to match the checkpoint")
+    features = propose(features, checkpoint.get("candidate_mode", "pause"))
     model = PauseScorer(checkpoint["architecture"], checkpoint["embedding_dim"])
     model.load_state_dict(checkpoint["weights"])
     model.eval()
@@ -245,4 +249,4 @@ def checkpoint_scores(path: Path, features: Features, embedding_path: Path | Non
     elif embedding_path is not None:
         raise ValueError("This checkpoint uses acoustic features only")
     scores = score_clips(model, [clip], embeddings, checkpoint["embedding_mean"], checkpoint["embedding_std"])
-    return scores[clip.id], checkpoint["threshold"]
+    return features, scores[clip.id], checkpoint["threshold"]

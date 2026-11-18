@@ -131,7 +131,8 @@ def build_timeline(features: Features, scores: np.ndarray, threshold: float, pro
             events.append(Cue("acknowledge", cue, {"yaw": 0.42}, now, 0.5, reason))
         else:
             cue, reason = None, "no acknowledgment motion available"
-        decisions.append({"time_s": now, "partner_speech_end_s": float(speech_end),
+        decisions.append({"time_s": now,
+                          "partner_speech_end_s": float(speech_end) if np.isfinite(speech_end) else None,
                           "score": float(score), "cue": cue, "reason": reason})
 
     cessations = speech_cessations(features)

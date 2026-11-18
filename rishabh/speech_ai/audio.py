@@ -1,6 +1,6 @@
 """Extract aligned features using only samples available at each frame end."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 import wave
 
@@ -121,6 +121,21 @@ def extract(partner: tuple[np.ndarray, int], agent: tuple[np.ndarray, int] | Non
 
     return Features(time_s, np.concatenate([partner_values, agent_values], axis=1),
                     np.asarray(candidates, dtype=np.int64), np.asarray(starts))
+
+
+def propose(features: Features, mode: str) -> Features:
+    """Offer cues at either detected pauses or a regular cadence in listening contexts."""
+    if mode == "pause":
+        return features
+    if mode != "cadence":
+        raise ValueError(f"Unknown candidate mode: {mode}")
+    indices = np.arange(len(features.time_s))
+    active = features.values[:, 3].astype(bool)
+    recent = np.maximum.accumulate(np.where(active, indices, -10_000))
+    # Sample at 10 Hz while the partner is speaking or was heard in the last second.
+    proposals = indices[(indices % 2 == 1) & (indices - recent <= 20)]
+    ends = np.where(active[proposals], np.nan, features.time_s[recent[proposals]])
+    return replace(features, candidates=proposals, speech_end_s=ends)
 
 
 def load_tracks(partner_path: Path, agent_path: Path | None = None,
