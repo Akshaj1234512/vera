@@ -63,6 +63,17 @@ def run_personaplex(args: argparse.Namespace) -> None:
               args.seed, args.cpu_offload, args.capture_states))
 
 
+def run_simulation(args: argparse.Namespace) -> None:
+    from .simulate import replay
+
+    if args.audio and not args.video:
+        raise ValueError("--audio requires --video")
+    report = replay(args.timeline, args.out, args.video, args.audio)
+    print(f'{args.out} | {report["duration_s"]:.2f} s | {report["self_contact_steps"]} self-contact steps')
+    if not report["finite_state"] or report["self_contact_steps"]:
+        raise SystemExit(1)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
@@ -118,6 +129,13 @@ def main() -> None:
     model.add_argument("--cpu-offload", action="store_true")
     model.add_argument("--capture-states", action="store_true")
     model.set_defaults(run=run_personaplex)
+
+    sim = commands.add_parser("simulate", help="replay cue targets on VERA's existing MuJoCo head")
+    sim.add_argument("timeline", type=Path)
+    sim.add_argument("--out", type=Path, required=True)
+    sim.add_argument("--video", type=Path, help="optional MP4 output (requires a graphics context)")
+    sim.add_argument("--audio", type=Path, help="optional aligned audio track to mux into the video")
+    sim.set_defaults(run=run_simulation)
 
     args = parser.parse_args()
     args.run(args)
