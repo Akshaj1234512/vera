@@ -1,6 +1,7 @@
 """Command-line entry points for VERA speech AI experiments."""
 
 import argparse
+import json
 import sys
 from pathlib import Path
 
@@ -40,6 +41,19 @@ def run_demo(args: argparse.Namespace) -> None:
         ))
 
 
+def run_audit(args: argparse.Namespace) -> None:
+    from .training import audit
+
+    report = audit(args.manifest, args.vad_db, args.seed, args.tolerance)
+    args.out.parent.mkdir(parents=True, exist_ok=True)
+    args.out.write_text(json.dumps(report, indent=2) + "\n")
+    for split, rows in report["splits"].items():
+        matched = sum(row["matches_after_speech_gate"] for row in rows)
+        labels = sum(row["labels"] for row in rows)
+        print(f"{split:<10} {matched}/{labels} labels reachable within {args.tolerance:g} s")
+    print(args.out)
+
+
 def run_training(args: argparse.Namespace) -> None:
     from .training import train
 
@@ -51,9 +65,13 @@ def run_training(args: argparse.Namespace) -> None:
 
 
 def run_samples(args: argparse.Namespace) -> None:
-    from .sources import prepare_samples
+    from .sources import prepare_samples, prepare_seamless
 
-    print(prepare_samples(args.collection, args.out or Path("data") / args.collection))
+    output = args.out or Path("data") / args.collection
+    if args.collection == "seamless":
+        print(prepare_seamless(output))
+    else:
+        print(prepare_samples(args.collection, output))
 
 
 def run_personaplex(args: argparse.Namespace) -> None:
@@ -72,6 +90,13 @@ def run_simulation(args: argparse.Namespace) -> None:
     print(f'{args.out} | {report["duration_s"]:.2f} s | {report["self_contact_steps"]} self-contact steps')
     if not report["finite_state"] or report["self_contact_steps"]:
         raise SystemExit(1)
+
+
+def run_pose(args: argparse.Namespace) -> None:
+    from .pose import analyze_manifest
+
+    print(analyze_manifest(args.manifest, args.model, args.out, args.side, args.hz,
+                           args.minimum_deg, args.export_proxy))
 
 
 def main() -> None:
@@ -113,7 +138,7 @@ def main() -> None:
     training.set_defaults(run=run_training)
 
     samples = commands.add_parser("samples", help="download and prepare small public published examples")
-    samples.add_argument("collection", choices=("personaplex", "vico"))
+    samples.add_argument("collection", choices=("personaplex", "vico", "seamless"))
     samples.add_argument("--out", type=Path)
     samples.set_defaults(run=run_samples)
 
@@ -136,6 +161,24 @@ def main() -> None:
     sim.add_argument("--video", type=Path, help="optional MP4 output (requires a graphics context)")
     sim.add_argument("--audio", type=Path, help="optional aligned audio track to mux into the video")
     sim.set_defaults(run=run_simulation)
+
+    pose = commands.add_parser("pose", help="extract head and jaw tracks from listener videos")
+    pose.add_argument("manifest", type=Path, help="sample annotation template with video paths")
+    pose.add_argument("--out", type=Path, required=True)
+    pose.add_argument("--model", type=Path, default=Path("data/models/face_landmarker.task"))
+    pose.add_argument("--side", choices=("full", "left", "right"), default="full")
+    pose.add_argument("--hz", type=float, default=10)
+    pose.add_argument("--minimum-deg", type=float, default=5)
+    pose.add_argument("--export-proxy", action="store_true", help="export unreviewed pitch peaks for a weak-label check")
+    pose.set_defaults(run=run_pose)
+
+    audit = commands.add_parser("audit", help="check whether pause candidates can reach the labels before training")
+    audit.add_argument("manifest", type=Path)
+    audit.add_argument("--out", type=Path, default=Path("runs/coverage.json"))
+    audit.add_argument("--seed", type=int, default=17)
+    audit.add_argument("--vad-db", type=float, default=-40)
+    audit.add_argument("--tolerance", type=float, default=0.30)
+    audit.set_defaults(run=run_audit)
 
     args = parser.parse_args()
     args.run(args)

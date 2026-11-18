@@ -170,6 +170,29 @@ def fit(architecture: str, splits: dict[str, list[Clip]], embeddings: dict[str, 
     }
 
 
+def audit(manifest: Path, vad_db: float, seed: int, tolerance: float) -> dict:
+    clips = load_manifest(manifest, vad_db)
+    splits = split_groups(clips, seed)
+    results = {
+        "origins": sorted({clip.origin for clip in clips}),
+        "vad_db": vad_db, "match_tolerance_s": tolerance,
+        "splits": {},
+    }
+    for name, portions in splits.items():
+        rows = []
+        for clip in portions:
+            features = clip.features
+            times = features.time_s[features.candidates]
+            rows.append({
+                "id": clip.id, "group": clip.group,
+                "labels": len(clip.labels), "pause_candidates": len(times),
+                "matches_before_speech_gate": len(match_events(times, clip.labels, tolerance)),
+                "matches_after_speech_gate": int(labels_for_candidates(clip, tolerance).sum()),
+            })
+        results["splits"][name] = rows
+    return results
+
+
 def train(manifest: Path, output: Path, epochs: int, seed: int, tolerance: float,
           vad_db: float, use_embeddings: bool) -> dict:
     if epochs <= 0 or tolerance < 0:
