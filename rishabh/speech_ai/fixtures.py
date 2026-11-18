@@ -33,3 +33,42 @@ def correction(output: Path) -> tuple[Path, Path]:
     write_wav(partner_path, partner, RATE)
     write_wav(agent_path, agent, RATE)
     return partner_path, agent_path
+
+
+def make_corpus(output: Path, groups: int, seed: int) -> Path:
+    """Create grouped examples with noisy rising/falling phrase endings."""
+    import json
+
+    if groups < 5:
+        raise ValueError("Use at least five synthetic groups")
+    output.mkdir(parents=True, exist_ok=True)
+    rng = np.random.default_rng(seed)
+    clips = []
+    for group in range(groups):
+        pitch = rng.uniform(115, 250)
+        level = rng.uniform(0.13, 0.29)
+        for take in range(3):
+            duration = 12
+            partner, agent = rng.normal(0, rng.uniform(0.0005, 0.004), (2, duration * RATE)).astype(np.float32)
+            annotations = []
+            for i in range(5):
+                end = 1.55 + 2.18 * i + rng.uniform(-0.22, 0.22)
+                label = bool(rng.random() < 0.5)
+                overlap = bool(rng.random() < 0.12)
+                length = rng.uniform(0.57, 1.15)
+                slope = rng.normal(-65 if label else 70, 39)
+                add_voice(partner, end - length, end, pitch + rng.uniform(-15, 15),
+                          slope, level, rng.uniform(0, 6))
+                if overlap:
+                    add_voice(agent, end - 0.26, end + 0.35, 155, 15, 0.18)
+                elif label:
+                    annotations.append(round(end + rng.uniform(0.12, 0.32), 3))
+            name = f"group-{group:02d}-{take}"
+            partner_path, agent_path = f"{name}-partner.wav", f"{name}-agent.wav"
+            write_wav(output / partner_path, partner, RATE)
+            write_wav(output / agent_path, agent, RATE)
+            clips.append({"id": name, "group": f"synthetic-{group:02d}", "origin": "synthetic",
+                          "partner": partner_path, "agent": agent_path, "ack_s": annotations})
+    manifest = output / "manifest.json"
+    manifest.write_text(json.dumps(clips, indent=2) + "\n")
+    return manifest
