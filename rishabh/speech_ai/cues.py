@@ -69,6 +69,7 @@ def speech_cessations(features: Features) -> list[dict]:
     stable_silence = 3
     last_overlap = -np.inf
     overlap_onset = None
+    agent_had_floor = False
     quiet_frames = 0
     cessations = []
     for index, (partner_active, agent_active) in enumerate(zip(partner, agent)):
@@ -78,6 +79,8 @@ def speech_cessations(features: Features) -> list[dict]:
             if partner_active:
                 if now - last_overlap > 0.25 or overlap_onset is None:
                     overlap_onset = round(float(now - FRAME_S), 6)
+                    before = slice(max(0, index - 12), index)
+                    agent_had_floor = bool(np.count_nonzero(agent[before] & ~partner[before]) >= 4)
                 last_overlap = now
             continue
         quiet_frames += 1
@@ -87,6 +90,7 @@ def speech_cessations(features: Features) -> list[dict]:
         if overlap_onset is not None and cessation - last_overlap <= 0.35:
             cessations.append({
                 "overlap_onset_s": overlap_onset,
+                "agent_had_floor": agent_had_floor,
                 "agent_cessation_s": cessation,
                 "detected_at_s": float(now),
                 "delta_s": round(cessation - overlap_onset, 6),
@@ -130,10 +134,11 @@ def build_timeline(features: Features, scores: np.ndarray, threshold: float, pro
         decisions.append({"time_s": now, "partner_speech_end_s": float(speech_end),
                           "score": float(score), "cue": cue, "reason": reason})
 
-    extends = speech_cessations(features)
-    for item in extends:
-        events.append(Cue("yield", "settle", {}, item["detected_at_s"], 0.2,
-                          "sustained outgoing-audio cessation after overlap"))
+    cessations = speech_cessations(features)
+    for item in cessations:
+        if item["agent_had_floor"]:
+            events.append(Cue("yield", "settle", {}, item["detected_at_s"], 0.2,
+                              "agent held the floor before overlap and outgoing audio then ceased"))
     events.sort(key=lambda event: event.onset_s)
     partner_db, agent_db = features.values[:, [0, 4]].T
     return {
@@ -148,5 +153,5 @@ def build_timeline(features: Features, scores: np.ndarray, threshold: float, pro
         "jaw_aperture": jaw_aperture(features).tolist(),
         "events": [asdict(event) for event in events],
         "ack_decisions": decisions,
-        "overlap_cessations": extends,
+        "overlap_cessations": cessations,
     }
