@@ -1,0 +1,55 @@
+{
+  "origins": [
+    "seamless-interaction-pose-proxy"
+  ],
+  "vad_db": -58.0,
+  "match_tolerance_s": 0.4,
+  "splits": {
+    "train": [
+      {
+        "id": "V00_S0152_I00000135",
+        "group": "V00_S0152",
+        "labels": 21,
+        "pause_candidates": 21,
+        "matches_before_speech_gate": 3,
+        "matches_after_speech_gate": 3
+      },
+      {
+        "id": "V00_S0255_I00000125",
+        "group": "V00_S0255",
+        "labels": 1,
+        "pause_candidates": 105,
+        "matches_before_speech_gate": 1,
+        "matches_after_speech_gate": 1
+      },
+      {
+        "id": "V00_S0274_I00000125",
+        "group": "V00_S0274",
+        "labels": 6,
+        "pause_candidates": 53,
+        "matches_before_speech_gate": 1,
+        "matches_after_speech_gate": 0
+      }
+    ],
+    "validation": [
+      {
+        "id": "V00_S0347_I00000126",
+        "group": "V00_S0347",
+        "labels": 21,
+        "pause_candidates": 67,
+        "matches_before_speech_gate": 8,
+        "matches_after_speech_gate": 4
+      }
+    ],
+    "test": [
+      {
+        "id": "V00_S0080_I00000135",
+        "group": "V00_S0080",
+        "labels": 8,
+        "pause_candidates": 39,
+        "matches_before_speech_gate": 0,
+        "matches_after_speech_gate": 0
+      }
+    ]
+  }
+}

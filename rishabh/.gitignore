@@ -1,4 +1,7 @@
 __pycache__/
 .venv/
-data/
-runs/
+# Third-party downloads (re-fetchable, off-scope for the G/R deliverable, ~570 MB)
+data/seamless/
+data/vico/
+data/models/
+.DS_Store

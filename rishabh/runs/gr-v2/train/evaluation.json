@@ -1,0 +1,297 @@
+{
+  "data": {
+    "manifest": "/Users/risha/Github/vera/rishabh/data/gr-v2/fixtures/manifest.json",
+    "sha256": "ee4bca726d321cc080ac69c018ec31ebf7e525319ff50f1147761767866772ba",
+    "synthetic": true,
+    "labels": [
+      "unclear",
+      "neutral_ack",
+      "enthusiastic_ack"
+    ],
+    "trials": 864
+  },
+  "origins": [
+    "synthetic_gr_fixture"
+  ],
+  "seed": 17,
+  "epochs": 36,
+  "generator_mode": "direct",
+  "loss_weights": {
+    "demo": 1.0,
+    "meaning": 0.04,
+    "temporal": 0.15
+  },
+  "calibration": {
+    "fixed-eyes": {
+      "neck_yaw": [
+        1.0,
+        -0.25,
+        0.25,
+        1.2000000476837158
+      ],
+      "neck_pitch": [
+        1.0,
+        -0.20000000298023224,
+        0.23999999463558197,
+        1.600000023841858
+      ],
+      "jaw": [
+        1.0,
+        0.0,
+        0.3199999928474426,
+        2.0
+      ],
+      "eye_yaw": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "eyelid_l": [
+        1.0,
+        0.0,
+        0.550000011920929,
+        5.0
+      ],
+      "eyelid_r": [
+        1.0,
+        0.0,
+        0.550000011920929,
+        5.0
+      ],
+      "brow_l": [
+        1.0,
+        -0.014999999664723873,
+        0.029999999329447746,
+        0.23999999463558197
+      ],
+      "brow_r": [
+        1.0,
+        -0.014999999664723873,
+        0.029999999329447746,
+        0.23999999463558197
+      ]
+    },
+    "fixed-neck-pitch": {
+      "neck_yaw": [
+        1.0,
+        -0.25,
+        0.25,
+        1.2000000476837158
+      ],
+      "neck_pitch": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "jaw": [
+        1.0,
+        0.0,
+        0.3199999928474426,
+        2.0
+      ],
+      "eye_yaw": [
+        1.0,
+        -0.3799999952316284,
+        0.3799999952316284,
+        2.299999952316284
+      ],
+      "eyelid_l": [
+        1.0,
+        0.0,
+        0.550000011920929,
+        5.0
+      ],
+      "eyelid_r": [
+        1.0,
+        0.0,
+        0.550000011920929,
+        5.0
+      ],
+      "brow_l": [
+        1.0,
+        -0.014999999664723873,
+        0.029999999329447746,
+        0.23999999463558197
+      ],
+      "brow_r": [
+        1.0,
+        -0.014999999664723873,
+        0.029999999329447746,
+        0.23999999463558197
+      ]
+    },
+    "full": {
+      "neck_yaw": [
+        1.0,
+        -0.25,
+        0.25,
+        1.2000000476837158
+      ],
+      "neck_pitch": [
+        1.0,
+        -0.20000000298023224,
+        0.23999999463558197,
+        1.600000023841858
+      ],
+      "jaw": [
+        1.0,
+        0.0,
+        0.3199999928474426,
+        2.0
+      ],
+      "eye_yaw": [
+        1.0,
+        -0.3799999952316284,
+        0.3799999952316284,
+        2.299999952316284
+      ],
+      "eyelid_l": [
+        1.0,
+        0.0,
+        0.550000011920929,
+        5.0
+      ],
+      "eyelid_r": [
+        1.0,
+        0.0,
+        0.550000011920929,
+        5.0
+      ],
+      "brow_l": [
+        1.0,
+        -0.014999999664723873,
+        0.029999999329447746,
+        0.23999999463558197
+      ],
+      "brow_r": [
+        1.0,
+        -0.014999999664723873,
+        0.029999999329447746,
+        0.23999999463558197
+      ]
+    }
+  },
+  "custom_calibrations": [],
+  "splits": {
+    "train": {
+      "groups": [
+        "synthetic-00",
+        "synthetic-01",
+        "synthetic-02",
+        "synthetic-03",
+        "synthetic-05",
+        "synthetic-07",
+        "synthetic-09",
+        "synthetic-10",
+        "synthetic-11",
+        "synthetic-12"
+      ],
+      "trials": 540,
+      "rated_trials": 540,
+      "observer_votes": 3774
+    },
+    "validation": {
+      "groups": [
+        "synthetic-06",
+        "synthetic-13",
+        "synthetic-15"
+      ],
+      "trials": 162,
+      "rated_trials": 162,
+      "observer_votes": 1165
+    },
+    "test": {
+      "groups": [
+        "synthetic-04",
+        "synthetic-08",
+        "synthetic-14"
+      ],
+      "trials": 162,
+      "rated_trials": 162,
+      "observer_votes": 1126
+    }
+  },
+  "refine_epochs": 8,
+  "meaning_weight": 0.04,
+  "smooth_weight": 0.15,
+  "observer_test": {
+    "soft_cross_entropy": 0.6036750078201294,
+    "majority_vote_accuracy": 0.9753086566925049,
+    "trials": 162
+  },
+  "trajectory_test": {
+    "direct": {
+      "demonstration_mae_rad": 0.009994986467063427,
+      "observer_mean_intended_probability": 0.49620309472084045,
+      "observer_intended_top1": 0.5925925970077515,
+      "smoothness": 0.011846974492073059,
+      "trials": 162
+    },
+    "g_refined": {
+      "demonstration_mae_rad": 0.013883450999855995,
+      "observer_mean_intended_probability": 0.8507411479949951,
+      "observer_intended_top1": 1.0,
+      "smoothness": 0.004317966289818287,
+      "trials": 162
+    },
+    "g_imitation": {
+      "demonstration_mae_rad": 0.013380004093050957,
+      "observer_mean_intended_probability": 0.7726460695266724,
+      "observer_intended_top1": 1.0,
+      "smoothness": 0.004081959370523691,
+      "trials": 162
+    }
+  },
+  "trajectory_test_by_profile": {
+    "fixed-eyes": {
+      "direct": {
+        "demonstration_mae_rad": 0.005848399363458157,
+        "observer_mean_intended_probability": 0.6054078340530396,
+        "observer_intended_top1": 0.8333333134651184,
+        "smoothness": 0.011096387170255184,
+        "trials": 54
+      },
+      "g_refined": {
+        "demonstration_mae_rad": 0.012528101913630962,
+        "observer_mean_intended_probability": 0.8582571744918823,
+        "observer_intended_top1": 1.0,
+        "smoothness": 0.0037828979548066854,
+        "trials": 54
+      }
+    },
+    "fixed-neck-pitch": {
+      "direct": {
+        "demonstration_mae_rad": 0.01565367542207241,
+        "observer_mean_intended_probability": 0.3433801829814911,
+        "observer_intended_top1": 0.3333333432674408,
+        "smoothness": 0.011746104806661606,
+        "trials": 54
+      },
+      "g_refined": {
+        "demonstration_mae_rad": 0.015339355915784836,
+        "observer_mean_intended_probability": 0.8377745747566223,
+        "observer_intended_top1": 1.0,
+        "smoothness": 0.004759674891829491,
+        "trials": 54
+      }
+    },
+    "full": {
+      "direct": {
+        "demonstration_mae_rad": 0.0086718974635005,
+        "observer_mean_intended_probability": 0.5398213863372803,
+        "observer_intended_top1": 0.6111111044883728,
+        "smoothness": 0.012698435224592686,
+        "trials": 54
+      },
+      "g_refined": {
+        "demonstration_mae_rad": 0.013795466162264347,
+        "observer_mean_intended_probability": 0.856191873550415,
+        "observer_intended_top1": 1.0,
+        "smoothness": 0.004411327186971903,
+        "trials": 54
+      }
+    }
+  }
+}

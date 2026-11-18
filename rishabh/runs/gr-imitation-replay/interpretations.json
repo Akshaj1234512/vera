@@ -1,0 +1,103 @@
+{
+  "training_origins": [
+    "synthetic_gr_fixture"
+  ],
+  "profile": "full",
+  "capabilities": {
+    "neck_yaw": [
+      1.0,
+      -0.25,
+      0.25,
+      1.2000000476837158
+    ],
+    "neck_pitch": [
+      1.0,
+      -0.20000000298023224,
+      0.23999999463558197,
+      1.600000023841858
+    ],
+    "jaw": [
+      1.0,
+      0.0,
+      0.3199999928474426,
+      2.0
+    ],
+    "eye_yaw": [
+      1.0,
+      -0.3799999952316284,
+      0.3799999952316284,
+      2.299999952316284
+    ],
+    "eyelid_l": [
+      1.0,
+      0.0,
+      0.550000011920929,
+      5.0
+    ],
+    "eyelid_r": [
+      1.0,
+      0.0,
+      0.550000011920929,
+      5.0
+    ],
+    "brow_l": [
+      1.0,
+      -0.014999999664723873,
+      0.029999999329447746,
+      0.23999999463558197
+    ],
+    "brow_r": [
+      1.0,
+      -0.014999999664723873,
+      0.029999999329447746,
+      0.23999999463558197
+    ]
+  },
+  "chunks": [
+    {
+      "start_s": 0.0,
+      "end_s": 0.5,
+      "r_probabilities_on_realized_motion": null
+    },
+    {
+      "start_s": 0.5,
+      "end_s": 1.0,
+      "r_probabilities_on_realized_motion": null
+    },
+    {
+      "start_s": 1.0,
+      "end_s": 1.5,
+      "r_probabilities_on_realized_motion": null
+    },
+    {
+      "start_s": 1.5,
+      "end_s": 2.0,
+      "r_probabilities_on_realized_motion": null
+    },
+    {
+      "start_s": 2.0,
+      "end_s": 2.5,
+      "r_probabilities_on_realized_motion": null
+    },
+    {
+      "start_s": 2.5,
+      "end_s": 3.0,
+      "r_probabilities_on_realized_motion": null
+    },
+    {
+      "start_s": 3.0,
+      "end_s": 3.5,
+      "r_probabilities_on_realized_motion": null
+    },
+    {
+      "start_s": 3.5,
+      "end_s": 4.0,
+      "r_probabilities_on_realized_motion": null
+    },
+    {
+      "start_s": 4.0,
+      "end_s": 4.5,
+      "r_probabilities_on_realized_motion": null
+    }
+  ]
+}

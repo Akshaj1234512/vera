@@ -1,0 +1,788 @@
+[
+  {
+    "id": "group-00-0",
+    "group": "synthetic-00",
+    "origin": "synthetic",
+    "partner": "group-00-0-partner.wav",
+    "agent": "group-00-0-agent.wav",
+    "ack_s": [
+      1.537,
+      5.912,
+      8.26,
+      10.723
+    ]
+  },
+  {
+    "id": "group-00-1",
+    "group": "synthetic-00",
+    "origin": "synthetic",
+    "partner": "group-00-1-partner.wav",
+    "agent": "group-00-1-agent.wav",
+    "ack_s": [
+      1.886,
+      5.884,
+      8.113
+    ]
+  },
+  {
+    "id": "group-00-2",
+    "group": "synthetic-00",
+    "origin": "synthetic",
+    "partner": "group-00-2-partner.wav",
+    "agent": "group-00-2-agent.wav",
+    "ack_s": [
+      1.67,
+      5.854,
+      8.41
+    ]
+  },
+  {
+    "id": "group-01-0",
+    "group": "synthetic-01",
+    "origin": "synthetic",
+    "partner": "group-01-0-partner.wav",
+    "agent": "group-01-0-agent.wav",
+    "ack_s": [
+      3.975,
+      6.183,
+      8.281,
+      10.501
+    ]
+  },
+  {
+    "id": "group-01-1",
+    "group": "synthetic-01",
+    "origin": "synthetic",
+    "partner": "group-01-1-partner.wav",
+    "agent": "group-01-1-agent.wav",
+    "ack_s": [
+      1.634,
+      4.168
+    ]
+  },
+  {
+    "id": "group-01-2",
+    "group": "synthetic-01",
+    "origin": "synthetic",
+    "partner": "group-01-2-partner.wav",
+    "agent": "group-01-2-agent.wav",
+    "ack_s": [
+      4.216,
+      5.861,
+      10.306
+    ]
+  },
+  {
+    "id": "group-02-0",
+    "group": "synthetic-02",
+    "origin": "synthetic",
+    "partner": "group-02-0-partner.wav",
+    "agent": "group-02-0-agent.wav",
+    "ack_s": [
+      1.912,
+      8.402,
+      10.693
+    ]
+  },
+  {
+    "id": "group-02-1",
+    "group": "synthetic-02",
+    "origin": "synthetic",
+    "partner": "group-02-1-partner.wav",
+    "agent": "group-02-1-agent.wav",
+    "ack_s": [
+      6.027
+    ]
+  },
+  {
+    "id": "group-02-2",
+    "group": "synthetic-02",
+    "origin": "synthetic",
+    "partner": "group-02-2-partner.wav",
+    "agent": "group-02-2-agent.wav",
+    "ack_s": [
+      5.86,
+      10.235
+    ]
+  },
+  {
+    "id": "group-03-0",
+    "group": "synthetic-03",
+    "origin": "synthetic",
+    "partner": "group-03-0-partner.wav",
+    "agent": "group-03-0-agent.wav",
+    "ack_s": [
+      3.989
+    ]
+  },
+  {
+    "id": "group-03-1",
+    "group": "synthetic-03",
+    "origin": "synthetic",
+    "partner": "group-03-1-partner.wav",
+    "agent": "group-03-1-agent.wav",
+    "ack_s": [
+      6.133
+    ]
+  },
+  {
+    "id": "group-03-2",
+    "group": "synthetic-03",
+    "origin": "synthetic",
+    "partner": "group-03-2-partner.wav",
+    "agent": "group-03-2-agent.wav",
+    "ack_s": []
+  },
+  {
+    "id": "group-04-0",
+    "group": "synthetic-04",
+    "origin": "synthetic",
+    "partner": "group-04-0-partner.wav",
+    "agent": "group-04-0-agent.wav",
+    "ack_s": [
+      4.161
+    ]
+  },
+  {
+    "id": "group-04-1",
+    "group": "synthetic-04",
+    "origin": "synthetic",
+    "partner": "group-04-1-partner.wav",
+    "agent": "group-04-1-agent.wav",
+    "ack_s": [
+      1.709,
+      6.186,
+      8.463,
+      10.604
+    ]
+  },
+  {
+    "id": "group-04-2",
+    "group": "synthetic-04",
+    "origin": "synthetic",
+    "partner": "group-04-2-partner.wav",
+    "agent": "group-04-2-agent.wav",
+    "ack_s": [
+      1.621,
+      4.012,
+      8.408
+    ]
+  },
+  {
+    "id": "group-05-0",
+    "group": "synthetic-05",
+    "origin": "synthetic",
+    "partner": "group-05-0-partner.wav",
+    "agent": "group-05-0-agent.wav",
+    "ack_s": [
+      1.853,
+      4.06
+    ]
+  },
+  {
+    "id": "group-05-1",
+    "group": "synthetic-05",
+    "origin": "synthetic",
+    "partner": "group-05-1-partner.wav",
+    "agent": "group-05-1-agent.wav",
+    "ack_s": [
+      1.838,
+      10.504
+    ]
+  },
+  {
+    "id": "group-05-2",
+    "group": "synthetic-05",
+    "origin": "synthetic",
+    "partner": "group-05-2-partner.wav",
+    "agent": "group-05-2-agent.wav",
+    "ack_s": [
+      3.948,
+      5.997,
+      8.269,
+      10.552
+    ]
+  },
+  {
+    "id": "group-06-0",
+    "group": "synthetic-06",
+    "origin": "synthetic",
+    "partner": "group-06-0-partner.wav",
+    "agent": "group-06-0-agent.wav",
+    "ack_s": [
+      3.822,
+      10.296
+    ]
+  },
+  {
+    "id": "group-06-1",
+    "group": "synthetic-06",
+    "origin": "synthetic",
+    "partner": "group-06-1-partner.wav",
+    "agent": "group-06-1-agent.wav",
+    "ack_s": [
+      1.898,
+      8.388
+    ]
+  },
+  {
+    "id": "group-06-2",
+    "group": "synthetic-06",
+    "origin": "synthetic",
+    "partner": "group-06-2-partner.wav",
+    "agent": "group-06-2-agent.wav",
+    "ack_s": [
+      4.245,
+      6.167
+    ]
+  },
+  {
+    "id": "group-07-0",
+    "group": "synthetic-07",
+    "origin": "synthetic",
+    "partner": "group-07-0-partner.wav",
+    "agent": "group-07-0-agent.wav",
+    "ack_s": []
+  },
+  {
+    "id": "group-07-1",
+    "group": "synthetic-07",
+    "origin": "synthetic",
+    "partner": "group-07-1-partner.wav",
+    "agent": "group-07-1-agent.wav",
+    "ack_s": [
+      1.537,
+      5.898,
+      10.634
+    ]
+  },
+  {
+    "id": "group-07-2",
+    "group": "synthetic-07",
+    "origin": "synthetic",
+    "partner": "group-07-2-partner.wav",
+    "agent": "group-07-2-agent.wav",
+    "ack_s": [
+      4.089,
+      8.224
+    ]
+  },
+  {
+    "id": "group-08-0",
+    "group": "synthetic-08",
+    "origin": "synthetic",
+    "partner": "group-08-0-partner.wav",
+    "agent": "group-08-0-agent.wav",
+    "ack_s": [
+      4.063,
+      10.469
+    ]
+  },
+  {
+    "id": "group-08-1",
+    "group": "synthetic-08",
+    "origin": "synthetic",
+    "partner": "group-08-1-partner.wav",
+    "agent": "group-08-1-agent.wav",
+    "ack_s": [
+      1.899,
+      8.245,
+      10.48
+    ]
+  },
+  {
+    "id": "group-08-2",
+    "group": "synthetic-08",
+    "origin": "synthetic",
+    "partner": "group-08-2-partner.wav",
+    "agent": "group-08-2-agent.wav",
+    "ack_s": [
+      10.63
+    ]
+  },
+  {
+    "id": "group-09-0",
+    "group": "synthetic-09",
+    "origin": "synthetic",
+    "partner": "group-09-0-partner.wav",
+    "agent": "group-09-0-agent.wav",
+    "ack_s": [
+      4.063
+    ]
+  },
+  {
+    "id": "group-09-1",
+    "group": "synthetic-09",
+    "origin": "synthetic",
+    "partner": "group-09-1-partner.wav",
+    "agent": "group-09-1-agent.wav",
+    "ack_s": [
+      6.233
+    ]
+  },
+  {
+    "id": "group-09-2",
+    "group": "synthetic-09",
+    "origin": "synthetic",
+    "partner": "group-09-2-partner.wav",
+    "agent": "group-09-2-agent.wav",
+    "ack_s": [
+      10.302
+    ]
+  },
+  {
+    "id": "group-10-0",
+    "group": "synthetic-10",
+    "origin": "synthetic",
+    "partner": "group-10-0-partner.wav",
+    "agent": "group-10-0-agent.wav",
+    "ack_s": [
+      1.807,
+      6.204,
+      8.151
+    ]
+  },
+  {
+    "id": "group-10-1",
+    "group": "synthetic-10",
+    "origin": "synthetic",
+    "partner": "group-10-1-partner.wav",
+    "agent": "group-10-1-agent.wav",
+    "ack_s": [
+      3.908
+    ]
+  },
+  {
+    "id": "group-10-2",
+    "group": "synthetic-10",
+    "origin": "synthetic",
+    "partner": "group-10-2-partner.wav",
+    "agent": "group-10-2-agent.wav",
+    "ack_s": [
+      8.141,
+      10.713
+    ]
+  },
+  {
+    "id": "group-11-0",
+    "group": "synthetic-11",
+    "origin": "synthetic",
+    "partner": "group-11-0-partner.wav",
+    "agent": "group-11-0-agent.wav",
+    "ack_s": []
+  },
+  {
+    "id": "group-11-1",
+    "group": "synthetic-11",
+    "origin": "synthetic",
+    "partner": "group-11-1-partner.wav",
+    "agent": "group-11-1-agent.wav",
+    "ack_s": [
+      1.783,
+      6.066
+    ]
+  },
+  {
+    "id": "group-11-2",
+    "group": "synthetic-11",
+    "origin": "synthetic",
+    "partner": "group-11-2-partner.wav",
+    "agent": "group-11-2-agent.wav",
+    "ack_s": [
+      6.103,
+      8.517
+    ]
+  },
+  {
+    "id": "group-12-0",
+    "group": "synthetic-12",
+    "origin": "synthetic",
+    "partner": "group-12-0-partner.wav",
+    "agent": "group-12-0-agent.wav",
+    "ack_s": [
+      6.189,
+      8.223,
+      10.576
+    ]
+  },
+  {
+    "id": "group-12-1",
+    "group": "synthetic-12",
+    "origin": "synthetic",
+    "partner": "group-12-1-partner.wav",
+    "agent": "group-12-1-agent.wav",
+    "ack_s": [
+      1.96,
+      4.116,
+      10.597
+    ]
+  },
+  {
+    "id": "group-12-2",
+    "group": "synthetic-12",
+    "origin": "synthetic",
+    "partner": "group-12-2-partner.wav",
+    "agent": "group-12-2-agent.wav",
+    "ack_s": []
+  },
+  {
+    "id": "group-13-0",
+    "group": "synthetic-13",
+    "origin": "synthetic",
+    "partner": "group-13-0-partner.wav",
+    "agent": "group-13-0-agent.wav",
+    "ack_s": [
+      10.362
+    ]
+  },
+  {
+    "id": "group-13-1",
+    "group": "synthetic-13",
+    "origin": "synthetic",
+    "partner": "group-13-1-partner.wav",
+    "agent": "group-13-1-agent.wav",
+    "ack_s": []
+  },
+  {
+    "id": "group-13-2",
+    "group": "synthetic-13",
+    "origin": "synthetic",
+    "partner": "group-13-2-partner.wav",
+    "agent": "group-13-2-agent.wav",
+    "ack_s": [
+      6.203,
+      8.185,
+      10.566
+    ]
+  },
+  {
+    "id": "group-14-0",
+    "group": "synthetic-14",
+    "origin": "synthetic",
+    "partner": "group-14-0-partner.wav",
+    "agent": "group-14-0-agent.wav",
+    "ack_s": [
+      6.33
+    ]
+  },
+  {
+    "id": "group-14-1",
+    "group": "synthetic-14",
+    "origin": "synthetic",
+    "partner": "group-14-1-partner.wav",
+    "agent": "group-14-1-agent.wav",
+    "ack_s": [
+      3.997,
+      8.32,
+      10.447
+    ]
+  },
+  {
+    "id": "group-14-2",
+    "group": "synthetic-14",
+    "origin": "synthetic",
+    "partner": "group-14-2-partner.wav",
+    "agent": "group-14-2-agent.wav",
+    "ack_s": [
+      1.962,
+      3.797,
+      6.174,
+      8.387,
+      10.313
+    ]
+  },
+  {
+    "id": "group-15-0",
+    "group": "synthetic-15",
+    "origin": "synthetic",
+    "partner": "group-15-0-partner.wav",
+    "agent": "group-15-0-agent.wav",
+    "ack_s": []
+  },
+  {
+    "id": "group-15-1",
+    "group": "synthetic-15",
+    "origin": "synthetic",
+    "partner": "group-15-1-partner.wav",
+    "agent": "group-15-1-agent.wav",
+    "ack_s": [
+      1.807,
+      4.252,
+      10.509
+    ]
+  },
+  {
+    "id": "group-15-2",
+    "group": "synthetic-15",
+    "origin": "synthetic",
+    "partner": "group-15-2-partner.wav",
+    "agent": "group-15-2-agent.wav",
+    "ack_s": []
+  },
+  {
+    "id": "group-16-0",
+    "group": "synthetic-16",
+    "origin": "synthetic",
+    "partner": "group-16-0-partner.wav",
+    "agent": "group-16-0-agent.wav",
+    "ack_s": []
+  },
+  {
+    "id": "group-16-1",
+    "group": "synthetic-16",
+    "origin": "synthetic",
+    "partner": "group-16-1-partner.wav",
+    "agent": "group-16-1-agent.wav",
+    "ack_s": [
+      5.946
+    ]
+  },
+  {
+    "id": "group-16-2",
+    "group": "synthetic-16",
+    "origin": "synthetic",
+    "partner": "group-16-2-partner.wav",
+    "agent": "group-16-2-agent.wav",
+    "ack_s": [
+      3.803
+    ]
+  },
+  {
+    "id": "group-17-0",
+    "group": "synthetic-17",
+    "origin": "synthetic",
+    "partner": "group-17-0-partner.wav",
+    "agent": "group-17-0-agent.wav",
+    "ack_s": [
+      1.862,
+      4.119,
+      8.426,
+      10.517
+    ]
+  },
+  {
+    "id": "group-17-1",
+    "group": "synthetic-17",
+    "origin": "synthetic",
+    "partner": "group-17-1-partner.wav",
+    "agent": "group-17-1-agent.wav",
+    "ack_s": []
+  },
+  {
+    "id": "group-17-2",
+    "group": "synthetic-17",
+    "origin": "synthetic",
+    "partner": "group-17-2-partner.wav",
+    "agent": "group-17-2-agent.wav",
+    "ack_s": [
+      1.812,
+      6.18,
+      10.599
+    ]
+  },
+  {
+    "id": "group-18-0",
+    "group": "synthetic-18",
+    "origin": "synthetic",
+    "partner": "group-18-0-partner.wav",
+    "agent": "group-18-0-agent.wav",
+    "ack_s": [
+      1.967,
+      10.287
+    ]
+  },
+  {
+    "id": "group-18-1",
+    "group": "synthetic-18",
+    "origin": "synthetic",
+    "partner": "group-18-1-partner.wav",
+    "agent": "group-18-1-agent.wav",
+    "ack_s": [
+      1.87,
+      3.837,
+      6.136,
+      10.261
+    ]
+  },
+  {
+    "id": "group-18-2",
+    "group": "synthetic-18",
+    "origin": "synthetic",
+    "partner": "group-18-2-partner.wav",
+    "agent": "group-18-2-agent.wav",
+    "ack_s": [
+      1.598,
+      6.106,
+      10.458
+    ]
+  },
+  {
+    "id": "group-19-0",
+    "group": "synthetic-19",
+    "origin": "synthetic",
+    "partner": "group-19-0-partner.wav",
+    "agent": "group-19-0-agent.wav",
+    "ack_s": [
+      1.728,
+      3.815,
+      10.604
+    ]
+  },
+  {
+    "id": "group-19-1",
+    "group": "synthetic-19",
+    "origin": "synthetic",
+    "partner": "group-19-1-partner.wav",
+    "agent": "group-19-1-agent.wav",
+    "ack_s": [
+      1.469,
+      8.199
+    ]
+  },
+  {
+    "id": "group-19-2",
+    "group": "synthetic-19",
+    "origin": "synthetic",
+    "partner": "group-19-2-partner.wav",
+    "agent": "group-19-2-agent.wav",
+    "ack_s": [
+      1.827,
+      3.994
+    ]
+  },
+  {
+    "id": "group-20-0",
+    "group": "synthetic-20",
+    "origin": "synthetic",
+    "partner": "group-20-0-partner.wav",
+    "agent": "group-20-0-agent.wav",
+    "ack_s": [
+      3.849
+    ]
+  },
+  {
+    "id": "group-20-1",
+    "group": "synthetic-20",
+    "origin": "synthetic",
+    "partner": "group-20-1-partner.wav",
+    "agent": "group-20-1-agent.wav",
+    "ack_s": [
+      3.846,
+      8.035
+    ]
+  },
+  {
+    "id": "group-20-2",
+    "group": "synthetic-20",
+    "origin": "synthetic",
+    "partner": "group-20-2-partner.wav",
+    "agent": "group-20-2-agent.wav",
+    "ack_s": [
+      4.041,
+      10.42
+    ]
+  },
+  {
+    "id": "group-21-0",
+    "group": "synthetic-21",
+    "origin": "synthetic",
+    "partner": "group-21-0-partner.wav",
+    "agent": "group-21-0-agent.wav",
+    "ack_s": [
+      10.515
+    ]
+  },
+  {
+    "id": "group-21-1",
+    "group": "synthetic-21",
+    "origin": "synthetic",
+    "partner": "group-21-1-partner.wav",
+    "agent": "group-21-1-agent.wav",
+    "ack_s": [
+      4.099,
+      10.654
+    ]
+  },
+  {
+    "id": "group-21-2",
+    "group": "synthetic-21",
+    "origin": "synthetic",
+    "partner": "group-21-2-partner.wav",
+    "agent": "group-21-2-agent.wav",
+    "ack_s": [
+      4.185,
+      5.951,
+      10.357
+    ]
+  },
+  {
+    "id": "group-22-0",
+    "group": "synthetic-22",
+    "origin": "synthetic",
+    "partner": "group-22-0-partner.wav",
+    "agent": "group-22-0-agent.wav",
+    "ack_s": [
+      6.261,
+      8.483
+    ]
+  },
+  {
+    "id": "group-22-1",
+    "group": "synthetic-22",
+    "origin": "synthetic",
+    "partner": "group-22-1-partner.wav",
+    "agent": "group-22-1-agent.wav",
+    "ack_s": [
+      1.654,
+      6.144
+    ]
+  },
+  {
+    "id": "group-22-2",
+    "group": "synthetic-22",
+    "origin": "synthetic",
+    "partner": "group-22-2-partner.wav",
+    "agent": "group-22-2-agent.wav",
+    "ack_s": [
+      1.836,
+      6.318,
+      8.202,
+      10.331
+    ]
+  },
+  {
+    "id": "group-23-0",
+    "group": "synthetic-23",
+    "origin": "synthetic",
+    "partner": "group-23-0-partner.wav",
+    "agent": "group-23-0-agent.wav",
+    "ack_s": [
+      4.033,
+      8.252,
+      10.41
+    ]
+  },
+  {
+    "id": "group-23-1",
+    "group": "synthetic-23",
+    "origin": "synthetic",
+    "partner": "group-23-1-partner.wav",
+    "agent": "group-23-1-agent.wav",
+    "ack_s": [
+      1.879,
+      3.843,
+      8.188
+    ]
+  },
+  {
+    "id": "group-23-2",
+    "group": "synthetic-23",
+    "origin": "synthetic",
+    "partner": "group-23-2-partner.wav",
+    "agent": "group-23-2-agent.wav",
+    "ack_s": [
+      4.127,
+      8.104
+    ]
+  }
+]

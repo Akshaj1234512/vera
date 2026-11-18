@@ -1,0 +1,9 @@
+pair,intent
+stream-002000ms,neutral_ack
+stream-005500ms,enthusiastic_ack
+stream-007000ms,enthusiastic_ack
+stream-009500ms,enthusiastic_ack
+stream-011000ms,neutral_ack
+stream-017000ms,neutral_ack
+stream-020500ms,neutral_ack
+stream-023000ms,neutral_ack

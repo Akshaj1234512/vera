@@ -1,0 +1,207 @@
+{
+  "evidence": "synthetic",
+  "labels": [
+    "unclear",
+    "neutral_ack",
+    "enthusiastic_ack"
+  ],
+  "raters": null,
+  "conditions": {},
+  "paired_comparisons": [],
+  "r_predictions": {
+    "g / fixed-neck-pitch": {
+      "mean_p_intended": 0.5901437099091709,
+      "trials": 8
+    },
+    "g / full": {
+      "mean_p_intended": 0.6214236433152109,
+      "trials": 8
+    },
+    "projected-dyaplex / fixed-neck-pitch": {
+      "mean_p_intended": 0.2478994783014059,
+      "trials": 8
+    }
+  },
+  "sessions": {
+    "runs/gr-v2/demo-projected-fixed": {
+      "evidence": "simulator_replay",
+      "policy": "projected-dyaplex",
+      "profile": "fixed-neck-pitch",
+      "metrics": {
+        "commanded_within_position_limits": true,
+        "commanded_within_speed_limits": true,
+        "disabled_channels_max_abs_measured_rad": 5.272719499771483e-05,
+        "measured_outside_limits_frames": 0,
+        "mean_abs_tracking_error_rad": {
+          "neck_yaw": 0.0,
+          "neck_pitch": 9.999999747378752e-06,
+          "jaw": 0.01891000010073185,
+          "eye_yaw": 0.0,
+          "eyelid_l": 0.0011599999852478504,
+          "eyelid_r": 0.0011599999852478504,
+          "brow_l": 0.0,
+          "brow_r": 0.0
+        },
+        "mean_sq_accel_inside_chunks": 0.4282817244529724,
+        "mean_sq_accel_at_boundaries": 0.11893027275800705,
+        "inference_ms": {
+          "mean": 0.11143396226415095,
+          "max": 0.516
+        },
+        "fallback_chunks": {
+          "cold_start": 1,
+          "no_teacher_motion": 0
+        }
+      },
+      "r_mean_probabilities_on_realized_motion": {
+        "unclear": 0.5609438787488377,
+        "neutral_ack": 0.26892301644764693,
+        "enthusiastic_ack": 0.17013310611832375
+      }
+    },
+    "runs/gr-v2/demo-g-fixed": {
+      "evidence": "simulator_replay",
+      "policy": "g",
+      "profile": "fixed-neck-pitch",
+      "metrics": {
+        "commanded_within_position_limits": true,
+        "commanded_within_speed_limits": true,
+        "disabled_channels_max_abs_measured_rad": 1.2599430192494765e-05,
+        "measured_outside_limits_frames": 0,
+        "mean_abs_tracking_error_rad": {
+          "neck_yaw": 0.0003499999875202775,
+          "neck_pitch": 0.0,
+          "jaw": 0.008469999767839909,
+          "eye_yaw": 0.0006799999973736703,
+          "eyelid_l": 0.0002500000118743628,
+          "eyelid_r": 0.0004400000034365803,
+          "brow_l": 3.9999998989515007e-05,
+          "brow_r": 4.999999873689376e-05
+        },
+        "mean_sq_accel_inside_chunks": 0.20839260518550873,
+        "mean_sq_accel_at_boundaries": 0.26697883009910583,
+        "inference_ms": {
+          "mean": 0.8008867924528303,
+          "max": 3.458
+        },
+        "fallback_chunks": {
+          "cold_start": 1,
+          "no_teacher_motion": 0
+        }
+      },
+      "r_mean_probabilities_on_realized_motion": {
+        "unclear": 0.6806587312078359,
+        "neutral_ack": 0.15718166515523313,
+        "enthusiastic_ack": 0.16215959892553442
+      }
+    },
+    "runs/gr-v2/demo-g-full": {
+      "evidence": "simulator_replay",
+      "policy": "g",
+      "profile": "full",
+      "metrics": {
+        "commanded_within_position_limits": true,
+        "commanded_within_speed_limits": true,
+        "disabled_channels_max_abs_measured_rad": 0.0,
+        "measured_outside_limits_frames": 0,
+        "mean_abs_tracking_error_rad": {
+          "neck_yaw": 0.0003800000122282654,
+          "neck_pitch": 0.0020800000056624413,
+          "jaw": 0.008139999583363533,
+          "eye_yaw": 0.00041000000783242285,
+          "eyelid_l": 0.0002300000051036477,
+          "eyelid_r": 0.0003600000054575503,
+          "brow_l": 0.0002300000051036477,
+          "brow_r": 0.00023999999393709004
+        },
+        "mean_sq_accel_inside_chunks": 0.19533507525920868,
+        "mean_sq_accel_at_boundaries": 0.16950611770153046,
+        "inference_ms": {
+          "mean": 0.9412075471698114,
+          "max": 3.933
+        },
+        "fallback_chunks": {
+          "cold_start": 1,
+          "no_teacher_motion": 0
+        }
+      },
+      "r_mean_probabilities_on_realized_motion": {
+        "unclear": 0.7215744630963195,
+        "neutral_ack": 0.1453026826402136,
+        "enthusiastic_ack": 0.1331228586461614
+      }
+    },
+    "runs/gr-v2/demo-residual-fixed": {
+      "evidence": "simulator_replay",
+      "policy": "g",
+      "profile": "fixed-neck-pitch",
+      "metrics": {
+        "commanded_within_position_limits": true,
+        "commanded_within_speed_limits": true,
+        "disabled_channels_max_abs_measured_rad": 0.0,
+        "measured_outside_limits_frames": 0,
+        "mean_abs_tracking_error_rad": {
+          "neck_yaw": 0.001069999998435378,
+          "neck_pitch": 0.0,
+          "jaw": 0.011020000092685223,
+          "eye_yaw": 0.006769999861717224,
+          "eyelid_l": 0.010940000414848328,
+          "eyelid_r": 0.011119999922811985,
+          "brow_l": 0.00033999999868683517,
+          "brow_r": 0.00033000000985339284
+        },
+        "mean_sq_accel_inside_chunks": 0.2201579213142395,
+        "mean_sq_accel_at_boundaries": 0.18786326050758362,
+        "inference_ms": {
+          "mean": 0.27411320754716983,
+          "max": 0.541
+        },
+        "fallback_chunks": {
+          "cold_start": 1,
+          "no_teacher_motion": 0
+        }
+      },
+      "r_mean_probabilities_on_realized_motion": {
+        "unclear": 0.6184658275953695,
+        "neutral_ack": 0.21429397501781874,
+        "enthusiastic_ack": 0.1672401930771622
+      }
+    },
+    "runs/gr-v2/live-fixed": {
+      "evidence": "simulator_replay",
+      "policy": "g",
+      "profile": "fixed-neck-pitch",
+      "metrics": {
+        "commanded_within_position_limits": true,
+        "commanded_within_speed_limits": true,
+        "disabled_channels_max_abs_measured_rad": 1.030307339533465e-05,
+        "measured_outside_limits_frames": 0,
+        "mean_abs_tracking_error_rad": {
+          "neck_yaw": 0.0003600000054575503,
+          "neck_pitch": 0.0,
+          "jaw": 0.00824000034481287,
+          "eye_yaw": 0.000699999975040555,
+          "eyelid_l": 0.0002500000118743628,
+          "eyelid_r": 0.0004400000034365803,
+          "brow_l": 3.9999998989515007e-05,
+          "brow_r": 4.999999873689376e-05
+        },
+        "mean_sq_accel_inside_chunks": 0.2046576738357544,
+        "mean_sq_accel_at_boundaries": 0.25744110345840454,
+        "inference_ms": {
+          "mean": 0.44383018867924534,
+          "max": 1.993
+        },
+        "fallback_chunks": {
+          "cold_start": 1,
+          "no_teacher_motion": 0
+        }
+      },
+      "r_mean_probabilities_on_realized_motion": {
+        "unclear": 0.6806069367437386,
+        "neutral_ack": 0.1578583405444435,
+        "enthusiastic_ack": 0.16153472117787482
+      }
+    }
+  }
+}

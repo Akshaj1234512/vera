@@ -1,0 +1,4 @@
+onset_s,duration_s,role,cue,target,reason
+1.8,0.5,acknowledge,gaze,"{""yaw"": 0.42}","nod unavailable, trying a linked-eye cue"
+9.85,0.2,yield,settle,{},agent held the floor before overlap and outgoing audio then ceased
+11.05,0.5,acknowledge,gaze,"{""yaw"": 0.42}","nod unavailable, trying a linked-eye cue"

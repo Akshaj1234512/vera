@@ -1,0 +1,198 @@
+{
+  "origins": [
+    "synthetic"
+  ],
+  "seed": 17,
+  "epochs": 24,
+  "match_tolerance_s": 0.3,
+  "vad_db": -40,
+  "candidate_mode": "pause",
+  "splits": {
+    "train": {
+      "clips": [
+        "group-00-0",
+        "group-00-1",
+        "group-00-2",
+        "group-01-0",
+        "group-01-1",
+        "group-01-2",
+        "group-02-0",
+        "group-02-1",
+        "group-02-2",
+        "group-07-0",
+        "group-07-1",
+        "group-07-2",
+        "group-08-0",
+        "group-08-1",
+        "group-08-2",
+        "group-09-0",
+        "group-09-1",
+        "group-09-2",
+        "group-10-0",
+        "group-10-1",
+        "group-10-2",
+        "group-11-0",
+        "group-11-1",
+        "group-11-2",
+        "group-13-0",
+        "group-13-1",
+        "group-13-2",
+        "group-15-0",
+        "group-15-1",
+        "group-15-2",
+        "group-16-0",
+        "group-16-1",
+        "group-16-2",
+        "group-18-0",
+        "group-18-1",
+        "group-18-2",
+        "group-19-0",
+        "group-19-1",
+        "group-19-2",
+        "group-21-0",
+        "group-21-1",
+        "group-21-2"
+      ],
+      "groups": [
+        "synthetic-00",
+        "synthetic-01",
+        "synthetic-02",
+        "synthetic-07",
+        "synthetic-08",
+        "synthetic-09",
+        "synthetic-10",
+        "synthetic-11",
+        "synthetic-13",
+        "synthetic-15",
+        "synthetic-16",
+        "synthetic-18",
+        "synthetic-19",
+        "synthetic-21"
+      ],
+      "annotated_events": 80
+    },
+    "validation": {
+      "clips": [
+        "group-03-0",
+        "group-03-1",
+        "group-03-2",
+        "group-04-0",
+        "group-04-1",
+        "group-04-2",
+        "group-05-0",
+        "group-05-1",
+        "group-05-2",
+        "group-06-0",
+        "group-06-1",
+        "group-06-2",
+        "group-22-0",
+        "group-22-1",
+        "group-22-2"
+      ],
+      "groups": [
+        "synthetic-03",
+        "synthetic-04",
+        "synthetic-05",
+        "synthetic-06",
+        "synthetic-22"
+      ],
+      "annotated_events": 32
+    },
+    "test": {
+      "clips": [
+        "group-12-0",
+        "group-12-1",
+        "group-12-2",
+        "group-14-0",
+        "group-14-1",
+        "group-14-2",
+        "group-17-0",
+        "group-17-1",
+        "group-17-2",
+        "group-20-0",
+        "group-20-1",
+        "group-20-2",
+        "group-23-0",
+        "group-23-1",
+        "group-23-2"
+      ],
+      "groups": [
+        "synthetic-12",
+        "synthetic-14",
+        "synthetic-17",
+        "synthetic-20",
+        "synthetic-23"
+      ],
+      "annotated_events": 35
+    }
+  },
+  "rules_test": {
+    "precision": 0.5,
+    "recall": 1.0,
+    "f1": 0.6667,
+    "tp": 35,
+    "fp": 35,
+    "fn": 0,
+    "pause_candidate_recall_ceiling": 1.0,
+    "false_cues_per_min": 11.667,
+    "mean_abs_onset_error_ms": 60.0
+  },
+  "models": [
+    {
+      "name": "linear",
+      "threshold": 0.43,
+      "parameters": 129,
+      "cpu_ms_per_candidate": 0.0034,
+      "validation": {
+        "precision": 0.8182,
+        "recall": 0.8438,
+        "f1": 0.8308,
+        "tp": 27,
+        "fp": 6,
+        "fn": 5,
+        "pause_candidate_recall_ceiling": 1.0,
+        "false_cues_per_min": 2.0,
+        "mean_abs_onset_error_ms": 58.6
+      },
+      "test": {
+        "precision": 0.8788,
+        "recall": 0.8286,
+        "f1": 0.8529,
+        "tp": 29,
+        "fp": 4,
+        "fn": 6,
+        "pause_candidate_recall_ceiling": 1.0,
+        "false_cues_per_min": 1.333,
+        "mean_abs_onset_error_ms": 56.9
+      }
+    },
+    {
+      "name": "gru",
+      "threshold": 0.49,
+      "parameters": 2473,
+      "cpu_ms_per_candidate": 0.0766,
+      "validation": {
+        "precision": 0.8889,
+        "recall": 1.0,
+        "f1": 0.9412,
+        "tp": 32,
+        "fp": 4,
+        "fn": 0,
+        "pause_candidate_recall_ceiling": 1.0,
+        "false_cues_per_min": 1.333,
+        "mean_abs_onset_error_ms": 58.2
+      },
+      "test": {
+        "precision": 0.9189,
+        "recall": 0.9714,
+        "f1": 0.9444,
+        "tp": 34,
+        "fp": 3,
+        "fn": 1,
+        "pause_candidate_recall_ceiling": 1.0,
+        "false_cues_per_min": 1.0,
+        "mean_abs_onset_error_ms": 60.7
+      }
+    }
+  ]
+}

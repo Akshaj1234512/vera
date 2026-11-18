@@ -1,0 +1,25 @@
+{
+  "duration_s": 8.0,
+  "model": "head.xml",
+  "profile": "linked-eyes",
+  "finite_state": true,
+  "self_contact_steps": 0,
+  "peak_abs_position_rad": {
+    "jaw": 0.194743,
+    "neck_pitch": 0.136892,
+    "eye_yaw_l": 0.0,
+    "eye_yaw_r": 0.0
+  },
+  "peak_command_rad_s": {
+    "jaw": 2.0,
+    "neck_pitch": 1.024719,
+    "eye_yaw_l": 0.0,
+    "eye_yaw_r": 0.0
+  },
+  "peak_tracking_error_rad": {
+    "jaw": 0.109737,
+    "neck_pitch": 0.029068,
+    "eye_yaw_l": 0.0,
+    "eye_yaw_r": 0.0
+  }
+}

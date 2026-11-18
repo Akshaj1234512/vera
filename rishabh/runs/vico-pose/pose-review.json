@@ -1,0 +1,43 @@
+{
+  "source": "data/vico/annotation-template.json",
+  "crop": "right",
+  "minimum_pitch_deg": 5,
+  "model": "data/models/face_landmarker.task",
+  "label_type": "unreviewed pitch excursions",
+  "clips": [
+    {
+      "id": "positive",
+      "trajectory": "positive-pose.csv",
+      "frames": 200,
+      "tracked_fraction": 1.0,
+      "candidates": [
+        {
+          "peak_s": 1.5,
+          "pitch_excursion_deg": 19.21
+        },
+        {
+          "peak_s": 11.7,
+          "pitch_excursion_deg": 30.28
+        },
+        {
+          "peak_s": 16.9,
+          "pitch_excursion_deg": 7.37
+        }
+      ]
+    },
+    {
+      "id": "neutral",
+      "trajectory": "neutral-pose.csv",
+      "frames": 80,
+      "tracked_fraction": 1.0,
+      "candidates": []
+    },
+    {
+      "id": "negative",
+      "trajectory": "negative-pose.csv",
+      "frames": 150,
+      "tracked_fraction": 1.0,
+      "candidates": []
+    }
+  ]
+}

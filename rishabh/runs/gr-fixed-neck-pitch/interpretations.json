@@ -1,0 +1,135 @@
+{
+  "training_origins": [
+    "synthetic_gr_fixture"
+  ],
+  "profile": "fixed-neck-pitch",
+  "capabilities": {
+    "neck_yaw": [
+      1.0,
+      -0.25,
+      0.25,
+      1.2000000476837158
+    ],
+    "neck_pitch": [
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "jaw": [
+      1.0,
+      0.0,
+      0.3199999928474426,
+      2.0
+    ],
+    "eye_yaw": [
+      1.0,
+      -0.3799999952316284,
+      0.3799999952316284,
+      2.299999952316284
+    ],
+    "eyelid_l": [
+      1.0,
+      0.0,
+      0.550000011920929,
+      5.0
+    ],
+    "eyelid_r": [
+      1.0,
+      0.0,
+      0.550000011920929,
+      5.0
+    ],
+    "brow_l": [
+      1.0,
+      -0.014999999664723873,
+      0.029999999329447746,
+      0.23999999463558197
+    ],
+    "brow_r": [
+      1.0,
+      -0.014999999664723873,
+      0.029999999329447746,
+      0.23999999463558197
+    ]
+  },
+  "chunks": [
+    {
+      "start_s": 0.0,
+      "end_s": 0.5,
+      "r_probabilities_on_realized_motion": null
+    },
+    {
+      "start_s": 0.5,
+      "end_s": 1.0,
+      "r_probabilities_on_realized_motion": {
+        "unclear": 0.9503595232963562,
+        "neutral_ack": 0.049598172307014465,
+        "enthusiastic_ack": 4.230616468703374e-05
+      }
+    },
+    {
+      "start_s": 1.0,
+      "end_s": 1.5,
+      "r_probabilities_on_realized_motion": {
+        "unclear": 0.0001236795651493594,
+        "neutral_ack": 0.8925807476043701,
+        "enthusiastic_ack": 0.10729555040597916
+      }
+    },
+    {
+      "start_s": 1.5,
+      "end_s": 2.0,
+      "r_probabilities_on_realized_motion": {
+        "unclear": 0.9500789642333984,
+        "neutral_ack": 0.04987840726971626,
+        "enthusiastic_ack": 4.2693001887528226e-05
+      }
+    },
+    {
+      "start_s": 2.0,
+      "end_s": 2.5,
+      "r_probabilities_on_realized_motion": {
+        "unclear": 0.09505624324083328,
+        "neutral_ack": 1.9831579265883192e-05,
+        "enthusiastic_ack": 0.9049239754676819
+      }
+    },
+    {
+      "start_s": 2.5,
+      "end_s": 3.0,
+      "r_probabilities_on_realized_motion": {
+        "unclear": 0.9501007795333862,
+        "neutral_ack": 0.049856558442115784,
+        "enthusiastic_ack": 4.266736505087465e-05
+      }
+    },
+    {
+      "start_s": 3.0,
+      "end_s": 3.5,
+      "r_probabilities_on_realized_motion": {
+        "unclear": 0.00012388444156385958,
+        "neutral_ack": 0.8925871253013611,
+        "enthusiastic_ack": 0.10728900134563446
+      }
+    },
+    {
+      "start_s": 3.5,
+      "end_s": 4.0,
+      "r_probabilities_on_realized_motion": {
+        "unclear": 0.9500779509544373,
+        "neutral_ack": 0.04987930506467819,
+        "enthusiastic_ack": 4.269413329893723e-05
+      }
+    },
+    {
+      "start_s": 4.0,
+      "end_s": 4.5,
+      "r_probabilities_on_realized_motion": {
+        "unclear": 0.09505624324083328,
+        "neutral_ack": 1.9831579265883192e-05,
+        "enthusiastic_ack": 0.9049239754676819
+      }
+    }
+  ]
+}

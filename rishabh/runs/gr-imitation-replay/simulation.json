@@ -1,0 +1,40 @@
+{
+  "duration_s": 4.5,
+  "model": "head.xml",
+  "profile": "full",
+  "finite_state": true,
+  "self_contact_steps": 0,
+  "peak_abs_position_rad": {
+    "neck_yaw": 0.011519,
+    "neck_pitch": 0.056404,
+    "jaw": 0.00192,
+    "eye_yaw_l": 0.088062,
+    "eye_yaw_r": 0.088062,
+    "eyelid_l": 3.3e-05,
+    "eyelid_r": 3e-05,
+    "brow_l": 0.005001,
+    "brow_r": 0.005522
+  },
+  "peak_command_rad_s": {
+    "neck_yaw": 1.2,
+    "neck_pitch": 1.6,
+    "jaw": 0.0,
+    "eye_yaw_l": 2.3,
+    "eye_yaw_r": 2.3,
+    "eyelid_l": 0.0,
+    "eyelid_r": 0.0,
+    "brow_l": 0.24,
+    "brow_r": 0.24
+  },
+  "peak_tracking_error_rad": {
+    "neck_yaw": 0.009558,
+    "neck_pitch": 0.028976,
+    "jaw": 0.00192,
+    "eye_yaw_l": 0.028595,
+    "eye_yaw_r": 0.028595,
+    "eyelid_l": 3.3e-05,
+    "eyelid_r": 3e-05,
+    "brow_l": 0.002619,
+    "brow_r": 0.002586
+  }
+}

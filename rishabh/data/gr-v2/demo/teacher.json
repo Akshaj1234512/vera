@@ -1,0 +1,38 @@
+{
+  "origin": "synthetic_listener_script_not_dyaplex",
+  "frames": 521,
+  "gestures": [
+    {
+      "time_s": 1.7,
+      "intent": "neutral_ack"
+    },
+    {
+      "time_s": 5.05,
+      "intent": "enthusiastic_ack"
+    },
+    {
+      "time_s": 6.65,
+      "intent": "enthusiastic_ack"
+    },
+    {
+      "time_s": 9.35,
+      "intent": "enthusiastic_ack"
+    },
+    {
+      "time_s": 10.95,
+      "intent": "neutral_ack"
+    },
+    {
+      "time_s": 16.7,
+      "intent": "neutral_ack"
+    },
+    {
+      "time_s": 20.0,
+      "intent": "neutral_ack"
+    },
+    {
+      "time_s": 22.65,
+      "intent": "neutral_ack"
+    }
+  ]
+}

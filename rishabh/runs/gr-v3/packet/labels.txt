@@ -1,0 +1,3 @@
+unclear
+neutral_ack
+enthusiastic_ack

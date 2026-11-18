@@ -1,0 +1,42 @@
+{
+  "origins": [
+    "synthetic_gr_fixture"
+  ],
+  "seed": 17,
+  "epochs": 1,
+  "generator_mode": "direct",
+  "splits": {
+    "train": {
+      "groups": [
+        "synthetic-00",
+        "synthetic-01",
+        "synthetic-02",
+        "synthetic-03",
+        "synthetic-05",
+        "synthetic-07",
+        "synthetic-09",
+        "synthetic-10",
+        "synthetic-11",
+        "synthetic-12"
+      ],
+      "trials": 540
+    },
+    "validation": {
+      "groups": [
+        "synthetic-06",
+        "synthetic-13",
+        "synthetic-15"
+      ],
+      "trials": 162
+    },
+    "test": {
+      "groups": [
+        "synthetic-04",
+        "synthetic-08",
+        "synthetic-14"
+      ],
+      "trials": 162
+    }
+  },
+  "demonstration_test_mae_rad": 0.00911836326122284
+}

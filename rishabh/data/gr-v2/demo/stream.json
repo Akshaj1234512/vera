@@ -1,0 +1,14 @@
+{
+  "frames": 521,
+  "duration_s": 26.05,
+  "teacher": {
+    "file": "data/gr-v2/demo/teacher.npz",
+    "sha256": "b4d9e725a58dc3347481160a7862d010834530d4c5c284d5210d7259818e1478",
+    "mapped_with": null,
+    "clock_offset_s": 0.0,
+    "max_age_s": 0.15,
+    "coverage": 1.0,
+    "median_age_s": 0.0
+  },
+  "context_dim": 8
+}

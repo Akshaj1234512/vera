@@ -1,0 +1,139 @@
+[
+  {
+    "partner": "../../data/seamless/V00_S0080_I00000135_P0116-pcm.wav",
+    "agent": "../../data/seamless/V00_S0080_I00000135_P0115-pcm.wav",
+    "video": "../../data/seamless/V00_S0080_I00000135_P0115.mp4",
+    "id": "V00_S0080_I00000135",
+    "group": "V00_S0080",
+    "origin": "seamless-interaction-pose-proxy",
+    "publisher": "https://huggingface.co/datasets/facebook/seamless-interaction",
+    "sources": {
+      "partner": "https://dl.fbaipublicfiles.com/seamless_interaction/naturalistic/dev/audio/V00_S0080_I00000135_P0116.wav",
+      "agent": "https://dl.fbaipublicfiles.com/seamless_interaction/naturalistic/dev/audio/V00_S0080_I00000135_P0115.wav",
+      "video": "https://dl.fbaipublicfiles.com/seamless_interaction/naturalistic/dev/video/V00_S0080_I00000135_P0115.mp4"
+    },
+    "ack_s": [
+      44.4,
+      52.5,
+      82.1,
+      103.1,
+      106.3,
+      129.7,
+      131.7,
+      133.9
+    ]
+  },
+  {
+    "partner": "../../data/seamless/V00_S0152_I00000135_P0217-pcm.wav",
+    "agent": "../../data/seamless/V00_S0152_I00000135_P0216-pcm.wav",
+    "video": "../../data/seamless/V00_S0152_I00000135_P0216.mp4",
+    "id": "V00_S0152_I00000135",
+    "group": "V00_S0152",
+    "origin": "seamless-interaction-pose-proxy",
+    "publisher": "https://huggingface.co/datasets/facebook/seamless-interaction",
+    "sources": {
+      "partner": "https://dl.fbaipublicfiles.com/seamless_interaction/naturalistic/dev/audio/V00_S0152_I00000135_P0217.wav",
+      "agent": "https://dl.fbaipublicfiles.com/seamless_interaction/naturalistic/dev/audio/V00_S0152_I00000135_P0216.wav",
+      "video": "https://dl.fbaipublicfiles.com/seamless_interaction/naturalistic/dev/video/V00_S0152_I00000135_P0216.mp4"
+    },
+    "ack_s": [
+      18.0,
+      20.5,
+      25.6,
+      26.6,
+      33.2,
+      34.1,
+      36.0,
+      37.5,
+      55.8,
+      56.6,
+      61.7,
+      63.3,
+      66.6,
+      69.9,
+      71.4,
+      76.1,
+      78.9,
+      80.0,
+      93.7,
+      97.3,
+      99.1
+    ]
+  },
+  {
+    "partner": "../../data/seamless/V00_S0255_I00000125_P0350-pcm.wav",
+    "agent": "../../data/seamless/V00_S0255_I00000125_P0351-pcm.wav",
+    "video": "../../data/seamless/V00_S0255_I00000125_P0351.mp4",
+    "id": "V00_S0255_I00000125",
+    "group": "V00_S0255",
+    "origin": "seamless-interaction-pose-proxy",
+    "publisher": "https://huggingface.co/datasets/facebook/seamless-interaction",
+    "sources": {
+      "partner": "https://dl.fbaipublicfiles.com/seamless_interaction/naturalistic/dev/audio/V00_S0255_I00000125_P0350.wav",
+      "agent": "https://dl.fbaipublicfiles.com/seamless_interaction/naturalistic/dev/audio/V00_S0255_I00000125_P0351.wav",
+      "video": "https://dl.fbaipublicfiles.com/seamless_interaction/naturalistic/dev/video/V00_S0255_I00000125_P0351.mp4"
+    },
+    "ack_s": [
+      49.6
+    ]
+  },
+  {
+    "partner": "../../data/seamless/V00_S0274_I00000125_P0371-pcm.wav",
+    "agent": "../../data/seamless/V00_S0274_I00000125_P0370-pcm.wav",
+    "video": "../../data/seamless/V00_S0274_I00000125_P0370.mp4",
+    "id": "V00_S0274_I00000125",
+    "group": "V00_S0274",
+    "origin": "seamless-interaction-pose-proxy",
+    "publisher": "https://huggingface.co/datasets/facebook/seamless-interaction",
+    "sources": {
+      "partner": "https://dl.fbaipublicfiles.com/seamless_interaction/naturalistic/dev/audio/V00_S0274_I00000125_P0371.wav",
+      "agent": "https://dl.fbaipublicfiles.com/seamless_interaction/naturalistic/dev/audio/V00_S0274_I00000125_P0370.wav",
+      "video": "https://dl.fbaipublicfiles.com/seamless_interaction/naturalistic/dev/video/V00_S0274_I00000125_P0370.mp4"
+    },
+    "ack_s": [
+      34.9,
+      57.1,
+      61.9,
+      62.9,
+      64.1,
+      124.6
+    ]
+  },
+  {
+    "partner": "../../data/seamless/V00_S0347_I00000126_P0466-pcm.wav",
+    "agent": "../../data/seamless/V00_S0347_I00000126_P0467-pcm.wav",
+    "video": "../../data/seamless/V00_S0347_I00000126_P0467.mp4",
+    "id": "V00_S0347_I00000126",
+    "group": "V00_S0347",
+    "origin": "seamless-interaction-pose-proxy",
+    "publisher": "https://huggingface.co/datasets/facebook/seamless-interaction",
+    "sources": {
+      "partner": "https://dl.fbaipublicfiles.com/seamless_interaction/naturalistic/dev/audio/V00_S0347_I00000126_P0466.wav",
+      "agent": "https://dl.fbaipublicfiles.com/seamless_interaction/naturalistic/dev/audio/V00_S0347_I00000126_P0467.wav",
+      "video": "https://dl.fbaipublicfiles.com/seamless_interaction/naturalistic/dev/video/V00_S0347_I00000126_P0467.mp4"
+    },
+    "ack_s": [
+      6.7,
+      7.6,
+      36.0,
+      47.9,
+      48.7,
+      67.8,
+      69.8,
+      77.1,
+      82.3,
+      100.1,
+      129.1,
+      155.1,
+      156.9,
+      183.5,
+      185.9,
+      187.4,
+      204.4,
+      208.7,
+      213.3,
+      216.3,
+      229.7
+    ]
+  }
+]

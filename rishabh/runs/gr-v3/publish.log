@@ -1,0 +1,9 @@
+{
+  "sent": {
+    "audio": 521,
+    "teacher": 521,
+    "states": 0
+  },
+  "session_offset_s": 0.004,
+  "session_closed_early": false
+}

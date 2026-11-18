@@ -1,0 +1,111 @@
+{
+  "origins": [
+    "seamless-interaction-pose-proxy"
+  ],
+  "seed": 17,
+  "epochs": 24,
+  "match_tolerance_s": 0.4,
+  "vad_db": -58.0,
+  "splits": {
+    "train": {
+      "clips": [
+        "V00_S0152_I00000135",
+        "V00_S0255_I00000125",
+        "V00_S0274_I00000125"
+      ],
+      "groups": [
+        "V00_S0152",
+        "V00_S0255",
+        "V00_S0274"
+      ],
+      "annotated_events": 28
+    },
+    "validation": {
+      "clips": [
+        "V00_S0347_I00000126"
+      ],
+      "groups": [
+        "V00_S0347"
+      ],
+      "annotated_events": 21
+    },
+    "test": {
+      "clips": [
+        "V00_S0080_I00000135"
+      ],
+      "groups": [
+        "V00_S0080"
+      ],
+      "annotated_events": 8
+    }
+  },
+  "rules_test": {
+    "precision": 0.0,
+    "recall": 0.0,
+    "f1": 0.0,
+    "tp": 0,
+    "fp": 29,
+    "fn": 8,
+    "pause_candidate_recall_ceiling": 0.0,
+    "false_cues_per_min": 9.886,
+    "mean_abs_onset_error_ms": null
+  },
+  "models": [
+    {
+      "name": "linear",
+      "threshold": 0.19,
+      "parameters": 129,
+      "cpu_ms_per_candidate": 0.0037,
+      "validation": {
+        "precision": 0.0606,
+        "recall": 0.0952,
+        "f1": 0.0741,
+        "tp": 2,
+        "fp": 31,
+        "fn": 19,
+        "pause_candidate_recall_ceiling": 0.1905,
+        "false_cues_per_min": 7.949,
+        "mean_abs_onset_error_ms": 200.0
+      },
+      "test": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "tp": 0,
+        "fp": 24,
+        "fn": 8,
+        "pause_candidate_recall_ceiling": 0.0,
+        "false_cues_per_min": 8.182,
+        "mean_abs_onset_error_ms": null
+      }
+    },
+    {
+      "name": "gru",
+      "threshold": 0.17,
+      "parameters": 2473,
+      "cpu_ms_per_candidate": 0.0825,
+      "validation": {
+        "precision": 0.0357,
+        "recall": 0.0476,
+        "f1": 0.0408,
+        "tp": 1,
+        "fp": 27,
+        "fn": 20,
+        "pause_candidate_recall_ceiling": 0.1905,
+        "false_cues_per_min": 6.923,
+        "mean_abs_onset_error_ms": 250.0
+      },
+      "test": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "tp": 0,
+        "fp": 13,
+        "fn": 8,
+        "pause_candidate_recall_ceiling": 0.0,
+        "false_cues_per_min": 4.432,
+        "mean_abs_onset_error_ms": null
+      }
+    }
+  ]
+}

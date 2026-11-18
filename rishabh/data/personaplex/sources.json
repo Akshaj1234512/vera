@@ -1,0 +1,20 @@
+[
+  {
+    "publisher": "https://research.nvidia.com/labs/adlr/personaplex/",
+    "source_url": "https://research.nvidia.com/labs/adlr/files/personaplex/assistant.mp3",
+    "file": "assistant.mp3",
+    "wav": "assistant.wav",
+    "sha256": "3a61b69c41b69d496bc545dceffc4f5b475548e300aa255f68097bbeddd8b583",
+    "seconds": 26.0089,
+    "channels": 2
+  },
+  {
+    "publisher": "https://research.nvidia.com/labs/adlr/personaplex/",
+    "source_url": "https://research.nvidia.com/labs/adlr/files/personaplex/backchannel.mp3",
+    "file": "backchannel.mp3",
+    "wav": "backchannel.wav",
+    "sha256": "189c59337db07666260aa76a54e9df7958784af6240189a50b9c13658ddde188",
+    "seconds": 16.9509,
+    "channels": 2
+  }
+]

@@ -1,0 +1,277 @@
+{
+  "source": "data/seamless/annotation-template.json",
+  "crop": "full",
+  "minimum_pitch_deg": 5,
+  "model": "data/models/face_landmarker.task",
+  "label_type": "unreviewed pitch excursions",
+  "clips": [
+    {
+      "id": "V00_S0080_I00000135",
+      "trajectory": "V00_S0080_I00000135-pose.csv",
+      "frames": 1760,
+      "tracked_fraction": 0.9903,
+      "candidates": [
+        {
+          "peak_s": 44.4,
+          "pitch_excursion_deg": 5.26
+        },
+        {
+          "peak_s": 52.5,
+          "pitch_excursion_deg": 5.95
+        },
+        {
+          "peak_s": 82.1,
+          "pitch_excursion_deg": 5.5
+        },
+        {
+          "peak_s": 103.1,
+          "pitch_excursion_deg": 5.29
+        },
+        {
+          "peak_s": 106.3,
+          "pitch_excursion_deg": 6.31
+        },
+        {
+          "peak_s": 129.7,
+          "pitch_excursion_deg": 5.37
+        },
+        {
+          "peak_s": 131.7,
+          "pitch_excursion_deg": 5.83
+        },
+        {
+          "peak_s": 133.9,
+          "pitch_excursion_deg": 5.01
+        }
+      ]
+    },
+    {
+      "id": "V00_S0152_I00000135",
+      "trajectory": "V00_S0152_I00000135-pose.csv",
+      "frames": 1000,
+      "tracked_fraction": 0.933,
+      "candidates": [
+        {
+          "peak_s": 18.0,
+          "pitch_excursion_deg": 7.46
+        },
+        {
+          "peak_s": 20.5,
+          "pitch_excursion_deg": 7.54
+        },
+        {
+          "peak_s": 25.6,
+          "pitch_excursion_deg": 7.51
+        },
+        {
+          "peak_s": 26.6,
+          "pitch_excursion_deg": 13.81
+        },
+        {
+          "peak_s": 33.2,
+          "pitch_excursion_deg": 14.63
+        },
+        {
+          "peak_s": 34.1,
+          "pitch_excursion_deg": 7.53
+        },
+        {
+          "peak_s": 36.0,
+          "pitch_excursion_deg": 5.34
+        },
+        {
+          "peak_s": 37.5,
+          "pitch_excursion_deg": 6.2
+        },
+        {
+          "peak_s": 55.8,
+          "pitch_excursion_deg": 6.28
+        },
+        {
+          "peak_s": 56.6,
+          "pitch_excursion_deg": 7.69
+        },
+        {
+          "peak_s": 61.7,
+          "pitch_excursion_deg": 5.35
+        },
+        {
+          "peak_s": 63.3,
+          "pitch_excursion_deg": 7.32
+        },
+        {
+          "peak_s": 66.6,
+          "pitch_excursion_deg": 5.98
+        },
+        {
+          "peak_s": 69.9,
+          "pitch_excursion_deg": 6.41
+        },
+        {
+          "peak_s": 71.4,
+          "pitch_excursion_deg": 7.19
+        },
+        {
+          "peak_s": 76.1,
+          "pitch_excursion_deg": 8.38
+        },
+        {
+          "peak_s": 78.9,
+          "pitch_excursion_deg": 18.48
+        },
+        {
+          "peak_s": 80.0,
+          "pitch_excursion_deg": 7.15
+        },
+        {
+          "peak_s": 93.7,
+          "pitch_excursion_deg": 9.09
+        },
+        {
+          "peak_s": 97.3,
+          "pitch_excursion_deg": 5.23
+        },
+        {
+          "peak_s": 99.1,
+          "pitch_excursion_deg": 6.22
+        }
+      ]
+    },
+    {
+      "id": "V00_S0255_I00000125",
+      "trajectory": "V00_S0255_I00000125-pose.csv",
+      "frames": 1940,
+      "tracked_fraction": 0.9995,
+      "candidates": [
+        {
+          "peak_s": 49.6,
+          "pitch_excursion_deg": 6.67
+        }
+      ]
+    },
+    {
+      "id": "V00_S0274_I00000125",
+      "trajectory": "V00_S0274_I00000125-pose.csv",
+      "frames": 1740,
+      "tracked_fraction": 1.0,
+      "candidates": [
+        {
+          "peak_s": 34.9,
+          "pitch_excursion_deg": 6.76
+        },
+        {
+          "peak_s": 57.1,
+          "pitch_excursion_deg": 5.85
+        },
+        {
+          "peak_s": 61.9,
+          "pitch_excursion_deg": 10.88
+        },
+        {
+          "peak_s": 62.9,
+          "pitch_excursion_deg": 7.05
+        },
+        {
+          "peak_s": 64.1,
+          "pitch_excursion_deg": 8.99
+        },
+        {
+          "peak_s": 124.6,
+          "pitch_excursion_deg": 5.58
+        }
+      ]
+    },
+    {
+      "id": "V00_S0347_I00000126",
+      "trajectory": "V00_S0347_I00000126-pose.csv",
+      "frames": 2340,
+      "tracked_fraction": 0.9786,
+      "candidates": [
+        {
+          "peak_s": 6.7,
+          "pitch_excursion_deg": 5.38
+        },
+        {
+          "peak_s": 7.6,
+          "pitch_excursion_deg": 8.24
+        },
+        {
+          "peak_s": 36.0,
+          "pitch_excursion_deg": 5.26
+        },
+        {
+          "peak_s": 47.9,
+          "pitch_excursion_deg": 6.26
+        },
+        {
+          "peak_s": 48.7,
+          "pitch_excursion_deg": 5.34
+        },
+        {
+          "peak_s": 67.8,
+          "pitch_excursion_deg": 7.51
+        },
+        {
+          "peak_s": 69.8,
+          "pitch_excursion_deg": 6.14
+        },
+        {
+          "peak_s": 77.1,
+          "pitch_excursion_deg": 8.34
+        },
+        {
+          "peak_s": 82.3,
+          "pitch_excursion_deg": 12.37
+        },
+        {
+          "peak_s": 100.1,
+          "pitch_excursion_deg": 9.7
+        },
+        {
+          "peak_s": 129.1,
+          "pitch_excursion_deg": 5.89
+        },
+        {
+          "peak_s": 155.1,
+          "pitch_excursion_deg": 5.98
+        },
+        {
+          "peak_s": 156.9,
+          "pitch_excursion_deg": 6.09
+        },
+        {
+          "peak_s": 183.5,
+          "pitch_excursion_deg": 11.83
+        },
+        {
+          "peak_s": 185.9,
+          "pitch_excursion_deg": 10.65
+        },
+        {
+          "peak_s": 187.4,
+          "pitch_excursion_deg": 7.35
+        },
+        {
+          "peak_s": 204.4,
+          "pitch_excursion_deg": 6.37
+        },
+        {
+          "peak_s": 208.7,
+          "pitch_excursion_deg": 5.03
+        },
+        {
+          "peak_s": 213.3,
+          "pitch_excursion_deg": 5.94
+        },
+        {
+          "peak_s": 216.3,
+          "pitch_excursion_deg": 12.54
+        },
+        {
+          "peak_s": 229.7,
+          "pitch_excursion_deg": 7.33
+        }
+      ]
+    }
+  ]
+}

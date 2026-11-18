@@ -1,0 +1,5 @@
+onset_s,duration_s,role,cue,target,reason
+1.5,0.65,acknowledge,nod,"{""pitch"": 0.45}",neck pitch available
+5.85,0.65,acknowledge,nod,"{""pitch"": 0.45}",neck pitch available
+8.1,0.65,acknowledge,nod,"{""pitch"": 0.45}",neck pitch available
+10.65,0.65,acknowledge,nod,"{""pitch"": 0.45}",neck pitch available

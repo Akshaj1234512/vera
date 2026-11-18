@@ -1,0 +1,923 @@
+{
+  "manifest": "/Users/risha/Github/vera/rishabh/data/gr-v3/manifest.json",
+  "clips": {
+    "b2462ac2": {
+      "id": "live-listen-fixed-018000ms",
+      "condition": "g",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-018000ms"
+    },
+    "a01114a9": {
+      "id": "live-listen-fixed-012000ms",
+      "condition": "g",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-012000ms"
+    },
+    "50d4d4d9": {
+      "id": "replay-projected-fixed-001500ms",
+      "condition": "projected-dyaplex",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-001500ms"
+    },
+    "a7495545": {
+      "id": "replay-projected-fixed-000500ms",
+      "condition": "projected-dyaplex",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-000500ms"
+    },
+    "2f268c89": {
+      "id": "replay-projected-fixed-006500ms",
+      "condition": "projected-dyaplex",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-006500ms"
+    },
+    "7c9eeedc": {
+      "id": "live-listen-fixed-012500ms",
+      "condition": "g",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-012500ms"
+    },
+    "9236c4e3": {
+      "id": "replay-g-full-014000ms",
+      "condition": "g",
+      "profile": "full",
+      "pair": "stream-014000ms"
+    },
+    "0e6dd4fb": {
+      "id": "replay-g-full-011000ms",
+      "condition": "g",
+      "profile": "full",
+      "pair": "stream-011000ms"
+    },
+    "a9f3388d": {
+      "id": "replay-g-full-017000ms",
+      "condition": "g",
+      "profile": "full",
+      "pair": "stream-017000ms"
+    },
+    "c6152b5e": {
+      "id": "replay-projected-fixed-016000ms",
+      "condition": "projected-dyaplex",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-016000ms"
+    },
+    "bdd5b2c0": {
+      "id": "live-listen-fixed-009500ms",
+      "condition": "g",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-009500ms"
+    },
+    "76423ffd": {
+      "id": "replay-projected-fixed-002500ms",
+      "condition": "projected-dyaplex",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-002500ms"
+    },
+    "a002fc46": {
+      "id": "replay-projected-fixed-024500ms",
+      "condition": "projected-dyaplex",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-024500ms"
+    },
+    "18a1a6e9": {
+      "id": "live-listen-fixed-022000ms",
+      "condition": "g",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-022000ms"
+    },
+    "fbd577fb": {
+      "id": "live-listen-fixed-017500ms",
+      "condition": "g",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-017500ms"
+    },
+    "78b2ea82": {
+      "id": "live-listen-fixed-014000ms",
+      "condition": "g",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-014000ms"
+    },
+    "791799b3": {
+      "id": "replay-g-full-005000ms",
+      "condition": "g",
+      "profile": "full",
+      "pair": "stream-005000ms"
+    },
+    "8f940379": {
+      "id": "replay-g-full-018500ms",
+      "condition": "g",
+      "profile": "full",
+      "pair": "stream-018500ms"
+    },
+    "d7b8190a": {
+      "id": "live-listen-fixed-014500ms",
+      "condition": "g",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-014500ms"
+    },
+    "e3d058f3": {
+      "id": "replay-projected-fixed-005500ms",
+      "condition": "projected-dyaplex",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-005500ms"
+    },
+    "285d071e": {
+      "id": "replay-g-full-004000ms",
+      "condition": "g",
+      "profile": "full",
+      "pair": "stream-004000ms"
+    },
+    "4955477f": {
+      "id": "replay-projected-fixed-019000ms",
+      "condition": "projected-dyaplex",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-019000ms"
+    },
+    "0669b2c7": {
+      "id": "replay-g-full-000500ms",
+      "condition": "g",
+      "profile": "full",
+      "pair": "stream-000500ms"
+    },
+    "17a32770": {
+      "id": "live-listen-fixed-016500ms",
+      "condition": "g",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-016500ms"
+    },
+    "d17c3ed7": {
+      "id": "replay-projected-fixed-011000ms",
+      "condition": "projected-dyaplex",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-011000ms"
+    },
+    "ba8322da": {
+      "id": "live-listen-fixed-010500ms",
+      "condition": "g",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-010500ms"
+    },
+    "8cf8580c": {
+      "id": "replay-g-full-001500ms",
+      "condition": "g",
+      "profile": "full",
+      "pair": "stream-001500ms"
+    },
+    "8363bd18": {
+      "id": "live-listen-fixed-021500ms",
+      "condition": "g",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-021500ms"
+    },
+    "55a4ac95": {
+      "id": "replay-projected-fixed-024000ms",
+      "condition": "projected-dyaplex",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-024000ms"
+    },
+    "945d90aa": {
+      "id": "replay-g-full-018000ms",
+      "condition": "g",
+      "profile": "full",
+      "pair": "stream-018000ms"
+    },
+    "e413d133": {
+      "id": "replay-g-full-025500ms",
+      "condition": "g",
+      "profile": "full",
+      "pair": "stream-025500ms"
+    },
+    "b63fd458": {
+      "id": "replay-projected-fixed-008000ms",
+      "condition": "projected-dyaplex",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-008000ms"
+    },
+    "28abfd5e": {
+      "id": "replay-projected-fixed-017500ms",
+      "condition": "projected-dyaplex",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-017500ms"
+    },
+    "d22f9c88": {
+      "id": "replay-projected-fixed-002000ms",
+      "condition": "projected-dyaplex",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-002000ms"
+    },
+    "cbba8640": {
+      "id": "replay-g-full-022500ms",
+      "condition": "g",
+      "profile": "full",
+      "pair": "stream-022500ms"
+    },
+    "96dbc596": {
+      "id": "replay-g-full-015500ms",
+      "condition": "g",
+      "profile": "full",
+      "pair": "stream-015500ms"
+    },
+    "037af847": {
+      "id": "replay-projected-fixed-025000ms",
+      "condition": "projected-dyaplex",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-025000ms"
+    },
+    "b581611c": {
+      "id": "replay-projected-fixed-003500ms",
+      "condition": "projected-dyaplex",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-003500ms"
+    },
+    "77ac362e": {
+      "id": "replay-projected-fixed-013000ms",
+      "condition": "projected-dyaplex",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-013000ms"
+    },
+    "9936c65f": {
+      "id": "replay-g-full-016500ms",
+      "condition": "g",
+      "profile": "full",
+      "pair": "stream-016500ms"
+    },
+    "f8f72bfc": {
+      "id": "replay-projected-fixed-012000ms",
+      "condition": "projected-dyaplex",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-012000ms"
+    },
+    "67b8bc42": {
+      "id": "live-listen-fixed-001000ms",
+      "condition": "g",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-001000ms"
+    },
+    "2747d1a8": {
+      "id": "live-listen-fixed-021000ms",
+      "condition": "g",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-021000ms"
+    },
+    "7063c33b": {
+      "id": "replay-g-full-006000ms",
+      "condition": "g",
+      "profile": "full",
+      "pair": "stream-006000ms"
+    },
+    "b64b66e6": {
+      "id": "replay-projected-fixed-011500ms",
+      "condition": "projected-dyaplex",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-011500ms"
+    },
+    "5f8d03cd": {
+      "id": "live-listen-fixed-009000ms",
+      "condition": "g",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-009000ms"
+    },
+    "8bc89505": {
+      "id": "replay-g-full-016000ms",
+      "condition": "g",
+      "profile": "full",
+      "pair": "stream-016000ms"
+    },
+    "2bf0091c": {
+      "id": "live-listen-fixed-024500ms",
+      "condition": "g",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-024500ms"
+    },
+    "766eb530": {
+      "id": "replay-g-full-007000ms",
+      "condition": "g",
+      "profile": "full",
+      "pair": "stream-007000ms"
+    },
+    "3c6d7315": {
+      "id": "replay-g-full-023000ms",
+      "condition": "g",
+      "profile": "full",
+      "pair": "stream-023000ms"
+    },
+    "2a8ef462": {
+      "id": "replay-projected-fixed-013500ms",
+      "condition": "projected-dyaplex",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-013500ms"
+    },
+    "a963dfd8": {
+      "id": "live-listen-fixed-023000ms",
+      "condition": "g",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-023000ms"
+    },
+    "e58a013e": {
+      "id": "live-listen-fixed-015500ms",
+      "condition": "g",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-015500ms"
+    },
+    "5f5a367d": {
+      "id": "live-listen-fixed-011500ms",
+      "condition": "g",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-011500ms"
+    },
+    "120a7962": {
+      "id": "replay-g-full-009000ms",
+      "condition": "g",
+      "profile": "full",
+      "pair": "stream-009000ms"
+    },
+    "d093d972": {
+      "id": "live-listen-fixed-001500ms",
+      "condition": "g",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-001500ms"
+    },
+    "3a4cdc2b": {
+      "id": "replay-projected-fixed-005000ms",
+      "condition": "projected-dyaplex",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-005000ms"
+    },
+    "423e7905": {
+      "id": "replay-projected-fixed-020000ms",
+      "condition": "projected-dyaplex",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-020000ms"
+    },
+    "96dbff1c": {
+      "id": "live-listen-fixed-006000ms",
+      "condition": "g",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-006000ms"
+    },
+    "64b40fc4": {
+      "id": "replay-g-full-013500ms",
+      "condition": "g",
+      "profile": "full",
+      "pair": "stream-013500ms"
+    },
+    "5bf137a9": {
+      "id": "live-listen-fixed-008000ms",
+      "condition": "g",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-008000ms"
+    },
+    "bcbbff3c": {
+      "id": "replay-projected-fixed-018500ms",
+      "condition": "projected-dyaplex",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-018500ms"
+    },
+    "25a2e6ec": {
+      "id": "live-listen-fixed-006500ms",
+      "condition": "g",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-006500ms"
+    },
+    "d580ec08": {
+      "id": "live-listen-fixed-016000ms",
+      "condition": "g",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-016000ms"
+    },
+    "dd88156b": {
+      "id": "replay-g-full-010500ms",
+      "condition": "g",
+      "profile": "full",
+      "pair": "stream-010500ms"
+    },
+    "df32508d": {
+      "id": "replay-projected-fixed-009000ms",
+      "condition": "projected-dyaplex",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-009000ms"
+    },
+    "c61dc1dd": {
+      "id": "live-listen-fixed-019000ms",
+      "condition": "g",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-019000ms"
+    },
+    "a2b945e6": {
+      "id": "replay-projected-fixed-009500ms",
+      "condition": "projected-dyaplex",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-009500ms"
+    },
+    "cc2d3833": {
+      "id": "live-listen-fixed-011000ms",
+      "condition": "g",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-011000ms"
+    },
+    "7c8814a5": {
+      "id": "live-listen-fixed-002000ms",
+      "condition": "g",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-002000ms"
+    },
+    "025f7815": {
+      "id": "replay-g-full-008000ms",
+      "condition": "g",
+      "profile": "full",
+      "pair": "stream-008000ms"
+    },
+    "36e2ae57": {
+      "id": "replay-g-full-006500ms",
+      "condition": "g",
+      "profile": "full",
+      "pair": "stream-006500ms"
+    },
+    "338376bb": {
+      "id": "live-listen-fixed-000500ms",
+      "condition": "g",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-000500ms"
+    },
+    "29e0d63a": {
+      "id": "replay-projected-fixed-022000ms",
+      "condition": "projected-dyaplex",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-022000ms"
+    },
+    "96eb075b": {
+      "id": "replay-g-full-021000ms",
+      "condition": "g",
+      "profile": "full",
+      "pair": "stream-021000ms"
+    },
+    "cd4cc96e": {
+      "id": "live-listen-fixed-023500ms",
+      "condition": "g",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-023500ms"
+    },
+    "a4b2077b": {
+      "id": "replay-projected-fixed-006000ms",
+      "condition": "projected-dyaplex",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-006000ms"
+    },
+    "181d579e": {
+      "id": "replay-g-full-019500ms",
+      "condition": "g",
+      "profile": "full",
+      "pair": "stream-019500ms"
+    },
+    "0c3507cd": {
+      "id": "replay-g-full-025000ms",
+      "condition": "g",
+      "profile": "full",
+      "pair": "stream-025000ms"
+    },
+    "5b299e84": {
+      "id": "replay-projected-fixed-004500ms",
+      "condition": "projected-dyaplex",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-004500ms"
+    },
+    "8db5afa3": {
+      "id": "replay-g-full-021500ms",
+      "condition": "g",
+      "profile": "full",
+      "pair": "stream-021500ms"
+    },
+    "bb7ff67d": {
+      "id": "replay-g-full-024500ms",
+      "condition": "g",
+      "profile": "full",
+      "pair": "stream-024500ms"
+    },
+    "768b3694": {
+      "id": "replay-g-full-012500ms",
+      "condition": "g",
+      "profile": "full",
+      "pair": "stream-012500ms"
+    },
+    "8421e8a6": {
+      "id": "live-listen-fixed-022500ms",
+      "condition": "g",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-022500ms"
+    },
+    "715a04e7": {
+      "id": "replay-projected-fixed-021000ms",
+      "condition": "projected-dyaplex",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-021000ms"
+    },
+    "278f338f": {
+      "id": "replay-projected-fixed-014500ms",
+      "condition": "projected-dyaplex",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-014500ms"
+    },
+    "b98e5cc9": {
+      "id": "replay-g-full-020500ms",
+      "condition": "g",
+      "profile": "full",
+      "pair": "stream-020500ms"
+    },
+    "10b947e1": {
+      "id": "live-listen-fixed-002500ms",
+      "condition": "g",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-002500ms"
+    },
+    "d340e1e7": {
+      "id": "replay-projected-fixed-017000ms",
+      "condition": "projected-dyaplex",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-017000ms"
+    },
+    "e190bd92": {
+      "id": "replay-g-full-024000ms",
+      "condition": "g",
+      "profile": "full",
+      "pair": "stream-024000ms"
+    },
+    "28214c18": {
+      "id": "replay-g-full-008500ms",
+      "condition": "g",
+      "profile": "full",
+      "pair": "stream-008500ms"
+    },
+    "e08421f3": {
+      "id": "live-listen-fixed-025000ms",
+      "condition": "g",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-025000ms"
+    },
+    "f151a2f8": {
+      "id": "replay-projected-fixed-012500ms",
+      "condition": "projected-dyaplex",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-012500ms"
+    },
+    "8b706791": {
+      "id": "replay-projected-fixed-014000ms",
+      "condition": "projected-dyaplex",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-014000ms"
+    },
+    "96b00e77": {
+      "id": "replay-g-full-020000ms",
+      "condition": "g",
+      "profile": "full",
+      "pair": "stream-020000ms"
+    },
+    "49a3fa0b": {
+      "id": "live-listen-fixed-005500ms",
+      "condition": "g",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-005500ms"
+    },
+    "809af123": {
+      "id": "live-listen-fixed-010000ms",
+      "condition": "g",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-010000ms"
+    },
+    "7bc0d35d": {
+      "id": "replay-projected-fixed-010000ms",
+      "condition": "projected-dyaplex",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-010000ms"
+    },
+    "b2ce9ed9": {
+      "id": "replay-projected-fixed-016500ms",
+      "condition": "projected-dyaplex",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-016500ms"
+    },
+    "cbc49928": {
+      "id": "replay-g-full-017500ms",
+      "condition": "g",
+      "profile": "full",
+      "pair": "stream-017500ms"
+    },
+    "92062460": {
+      "id": "live-listen-fixed-019500ms",
+      "condition": "g",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-019500ms"
+    },
+    "8d2d08ac": {
+      "id": "replay-projected-fixed-015000ms",
+      "condition": "projected-dyaplex",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-015000ms"
+    },
+    "e06aa4a0": {
+      "id": "replay-g-full-003000ms",
+      "condition": "g",
+      "profile": "full",
+      "pair": "stream-003000ms"
+    },
+    "2c014f42": {
+      "id": "replay-projected-fixed-010500ms",
+      "condition": "projected-dyaplex",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-010500ms"
+    },
+    "5d67dfb1": {
+      "id": "replay-g-full-002500ms",
+      "condition": "g",
+      "profile": "full",
+      "pair": "stream-002500ms"
+    },
+    "6a4430f5": {
+      "id": "live-listen-fixed-013000ms",
+      "condition": "g",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-013000ms"
+    },
+    "0eaafe87": {
+      "id": "replay-g-full-022000ms",
+      "condition": "g",
+      "profile": "full",
+      "pair": "stream-022000ms"
+    },
+    "98e76ebb": {
+      "id": "replay-projected-fixed-020500ms",
+      "condition": "projected-dyaplex",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-020500ms"
+    },
+    "e40b661a": {
+      "id": "live-listen-fixed-020000ms",
+      "condition": "g",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-020000ms"
+    },
+    "6ba620d8": {
+      "id": "replay-projected-fixed-007500ms",
+      "condition": "projected-dyaplex",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-007500ms"
+    },
+    "a716d05a": {
+      "id": "live-listen-fixed-003500ms",
+      "condition": "g",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-003500ms"
+    },
+    "9676d2f4": {
+      "id": "replay-g-full-001000ms",
+      "condition": "g",
+      "profile": "full",
+      "pair": "stream-001000ms"
+    },
+    "a85183b9": {
+      "id": "replay-projected-fixed-003000ms",
+      "condition": "projected-dyaplex",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-003000ms"
+    },
+    "65ce096c": {
+      "id": "replay-projected-fixed-015500ms",
+      "condition": "projected-dyaplex",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-015500ms"
+    },
+    "d832e68e": {
+      "id": "replay-projected-fixed-008500ms",
+      "condition": "projected-dyaplex",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-008500ms"
+    },
+    "4a1537e7": {
+      "id": "live-listen-fixed-005000ms",
+      "condition": "g",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-005000ms"
+    },
+    "805231f2": {
+      "id": "live-listen-fixed-015000ms",
+      "condition": "g",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-015000ms"
+    },
+    "33dddc4d": {
+      "id": "replay-g-full-005500ms",
+      "condition": "g",
+      "profile": "full",
+      "pair": "stream-005500ms"
+    },
+    "84f2e73c": {
+      "id": "replay-projected-fixed-001000ms",
+      "condition": "projected-dyaplex",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-001000ms"
+    },
+    "562bd283": {
+      "id": "replay-projected-fixed-019500ms",
+      "condition": "projected-dyaplex",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-019500ms"
+    },
+    "3697d8ba": {
+      "id": "replay-g-full-009500ms",
+      "condition": "g",
+      "profile": "full",
+      "pair": "stream-009500ms"
+    },
+    "3b835146": {
+      "id": "replay-projected-fixed-004000ms",
+      "condition": "projected-dyaplex",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-004000ms"
+    },
+    "79da1255": {
+      "id": "replay-g-full-013000ms",
+      "condition": "g",
+      "profile": "full",
+      "pair": "stream-013000ms"
+    },
+    "4dc948d1": {
+      "id": "replay-projected-fixed-023500ms",
+      "condition": "projected-dyaplex",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-023500ms"
+    },
+    "71268dbf": {
+      "id": "replay-projected-fixed-007000ms",
+      "condition": "projected-dyaplex",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-007000ms"
+    },
+    "e635966f": {
+      "id": "replay-g-full-007500ms",
+      "condition": "g",
+      "profile": "full",
+      "pair": "stream-007500ms"
+    },
+    "0cc822fe": {
+      "id": "replay-projected-fixed-022500ms",
+      "condition": "projected-dyaplex",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-022500ms"
+    },
+    "8a9fc15b": {
+      "id": "live-listen-fixed-007000ms",
+      "condition": "g",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-007000ms"
+    },
+    "7ced87cf": {
+      "id": "live-listen-fixed-020500ms",
+      "condition": "g",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-020500ms"
+    },
+    "4095bb56": {
+      "id": "replay-g-full-019000ms",
+      "condition": "g",
+      "profile": "full",
+      "pair": "stream-019000ms"
+    },
+    "7db0f168": {
+      "id": "replay-g-full-014500ms",
+      "condition": "g",
+      "profile": "full",
+      "pair": "stream-014500ms"
+    },
+    "11cb64a5": {
+      "id": "replay-g-full-011500ms",
+      "condition": "g",
+      "profile": "full",
+      "pair": "stream-011500ms"
+    },
+    "594ee7b9": {
+      "id": "replay-projected-fixed-025500ms",
+      "condition": "projected-dyaplex",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-025500ms"
+    },
+    "713ec27d": {
+      "id": "replay-g-full-012000ms",
+      "condition": "g",
+      "profile": "full",
+      "pair": "stream-012000ms"
+    },
+    "e4abdc52": {
+      "id": "replay-g-full-023500ms",
+      "condition": "g",
+      "profile": "full",
+      "pair": "stream-023500ms"
+    },
+    "bd6a4730": {
+      "id": "live-listen-fixed-024000ms",
+      "condition": "g",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-024000ms"
+    },
+    "a32a1c97": {
+      "id": "replay-g-full-015000ms",
+      "condition": "g",
+      "profile": "full",
+      "pair": "stream-015000ms"
+    },
+    "2d4649bd": {
+      "id": "live-listen-fixed-008500ms",
+      "condition": "g",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-008500ms"
+    },
+    "c717936c": {
+      "id": "live-listen-fixed-004500ms",
+      "condition": "g",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-004500ms"
+    },
+    "76f1b1bf": {
+      "id": "replay-projected-fixed-018000ms",
+      "condition": "projected-dyaplex",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-018000ms"
+    },
+    "068b639c": {
+      "id": "live-listen-fixed-025500ms",
+      "condition": "g",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-025500ms"
+    },
+    "0aa885b5": {
+      "id": "replay-g-full-010000ms",
+      "condition": "g",
+      "profile": "full",
+      "pair": "stream-010000ms"
+    },
+    "325f30b1": {
+      "id": "live-listen-fixed-017000ms",
+      "condition": "g",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-017000ms"
+    },
+    "e7e2b573": {
+      "id": "live-listen-fixed-013500ms",
+      "condition": "g",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-013500ms"
+    },
+    "9637d7ba": {
+      "id": "replay-g-full-004500ms",
+      "condition": "g",
+      "profile": "full",
+      "pair": "stream-004500ms"
+    },
+    "f0e96ea7": {
+      "id": "live-listen-fixed-004000ms",
+      "condition": "g",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-004000ms"
+    },
+    "a1496e96": {
+      "id": "replay-projected-fixed-021500ms",
+      "condition": "projected-dyaplex",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-021500ms"
+    },
+    "1a06ea6d": {
+      "id": "live-listen-fixed-007500ms",
+      "condition": "g",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-007500ms"
+    },
+    "d2e14ea5": {
+      "id": "replay-g-full-003500ms",
+      "condition": "g",
+      "profile": "full",
+      "pair": "stream-003500ms"
+    },
+    "ce49cf75": {
+      "id": "live-listen-fixed-018500ms",
+      "condition": "g",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-018500ms"
+    },
+    "dd69ad6f": {
+      "id": "replay-g-full-002000ms",
+      "condition": "g",
+      "profile": "full",
+      "pair": "stream-002000ms"
+    },
+    "128286de": {
+      "id": "live-listen-fixed-003000ms",
+      "condition": "g",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-003000ms"
+    },
+    "89d3d57a": {
+      "id": "replay-projected-fixed-023000ms",
+      "condition": "projected-dyaplex",
+      "profile": "fixed-neck-pitch",
+      "pair": "stream-023000ms"
+    }
+  }
+}
