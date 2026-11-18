@@ -1,6 +1,6 @@
 # Speech AI experiments
 
-## Meeting demo
+## Speech cue replay in MuJoCo
 
 The same published PersonaPlex audio plays under two MuJoCo heads. At **1.80 s** the left head nods and the right head casts a brief gaze cue with nodding disabled. At **9.40 s** the two audio streams overlap. Agent audio ceases at **9.70 s** and the visible yield cue starts when the detector confirms the silence at **9.85 s**. Both simulations had finite state and zero self-contact steps. The gaze cue is a candidate substitute for an observer study. [NVIDIA audio examples](https://research.nvidia.com/labs/adlr/personaplex/#examples)
 
@@ -9,9 +9,9 @@ From `rishabh/`, install `mujoco` in addition to the base requirements. Download
 ```sh
 python -m speech_ai samples personaplex
 python -m speech_ai replay data/personaplex/assistant.wav --stereo --plot \
-  --source "Published PersonaPlex interruption demo" --out runs/assistant
+  --source "Published PersonaPlex interruption audio" --out runs/assistant
 python -m speech_ai replay data/personaplex/assistant.wav --stereo --plot \
-  --source "Published PersonaPlex interruption demo" --profile nod-busy --out runs/assistant-gaze
+  --source "Published PersonaPlex interruption audio" --profile nod-busy --out runs/assistant-gaze
 python -m speech_ai simulate runs/assistant/timeline.json --out runs/assistant/sim \
   --video runs/assistant/replay.mp4 --audio data/personaplex/assistant.wav
 python -m speech_ai simulate runs/assistant-gaze/timeline.json --out runs/assistant-gaze/sim \
@@ -50,7 +50,7 @@ python -m speech_ai train runs/seamless-pose/pose-proxy-manifest.json --out runs
 
 ## PersonaPlex weights and causal features
 
-The bridge uses the official offline runner in a separate Python 3.12 environment. Install the pinned NVIDIA implementation there and accept the model license on Hugging Face. The full checkpoint needs a host with more memory than the 16 GB development Mac. The local demo replays NVIDIA’s released output. [PersonaPlex implementation](https://github.com/NVIDIA/personaplex) · [Weights](https://huggingface.co/nvidia/personaplex-7b-v1)
+The bridge uses the official offline runner in a separate Python 3.12 environment. Install the pinned NVIDIA implementation there and accept the model license on Hugging Face. The full checkpoint needs a host with more memory than the 16 GB development Mac. The simulation replay uses NVIDIA’s released output. [PersonaPlex implementation](https://github.com/NVIDIA/personaplex) · [Weights](https://huggingface.co/nvidia/personaplex-7b-v1)
 
 ```sh
 python3.12 -m venv .venv/personaplex
