@@ -1,6 +1,7 @@
 """Command-line entry points for VERA speech AI experiments."""
 
 import argparse
+import sys
 from pathlib import Path
 
 from .audio import extract, load_tracks
@@ -49,6 +50,19 @@ def run_training(args: argparse.Namespace) -> None:
     print(args.out / "evaluation.json")
 
 
+def run_samples(args: argparse.Namespace) -> None:
+    from .sources import prepare_samples
+
+    print(prepare_samples(args.collection, args.out or Path("data") / args.collection))
+
+
+def run_personaplex(args: argparse.Namespace) -> None:
+    from .personaplex import run
+
+    print(run(args.input, args.out, args.python, args.device, args.voice, args.prompt,
+              args.seed, args.cpu_offload, args.capture_states))
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
@@ -86,6 +100,24 @@ def main() -> None:
     training.add_argument("--vad-db", type=float, default=-40)
     training.add_argument("--embeddings", action="store_true", help="also compare models with embeddings")
     training.set_defaults(run=run_training)
+
+    samples = commands.add_parser("samples", help="download and prepare small public published examples")
+    samples.add_argument("collection", choices=("personaplex", "vico"))
+    samples.add_argument("--out", type=Path)
+    samples.set_defaults(run=run_samples)
+
+    from .personaplex import DEFAULT_PROMPT
+    model = commands.add_parser("personaplex", help="run NVIDIA PersonaPlex in its installed environment")
+    model.add_argument("input", type=Path)
+    model.add_argument("--out", type=Path, required=True)
+    model.add_argument("--python", default=sys.executable, help="Python where NVIDIA Moshi is installed")
+    model.add_argument("--device", default="cuda")
+    model.add_argument("--voice", default="NATF2.pt")
+    model.add_argument("--prompt", default=DEFAULT_PROMPT)
+    model.add_argument("--seed", type=int, default=42424242)
+    model.add_argument("--cpu-offload", action="store_true")
+    model.add_argument("--capture-states", action="store_true")
+    model.set_defaults(run=run_personaplex)
 
     args = parser.parse_args()
     args.run(args)
