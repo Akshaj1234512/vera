@@ -73,19 +73,47 @@ def pitch(frame: np.ndarray, rate: int) -> tuple[float, float]:
     return float(reduced_rate / lag), float(autocorr[lag])
 
 
+def frame_features(frame: np.ndarray, length: int, rate: int, active: bool, threshold_db: float):
+    """dBFS, pitch, voicing and activity (with 4 dB hysteresis) for one 50 ms frame."""
+    power = np.dot(frame, frame) / length if len(frame) else 0.0
+    db = float(10 * np.log10(max(power, 1e-8)))
+    active = db >= (threshold_db - 4 if active else threshold_db)
+    hz, confidence = pitch(frame, rate) if active else (0.0, 0.0)
+    return (db, hz, confidence, active), active
+
+
 def track_features(samples: np.ndarray, rate: int, frames: int, threshold_db: float) -> np.ndarray:
     values = np.zeros((frames, 4), dtype=np.float32)
     active = False
     for index in range(frames):
         start = round(index * FRAME_S * rate)
         end = round((index + 1) * FRAME_S * rate)
-        frame = samples[start:end]
-        power = np.dot(frame, frame) / (end - start) if len(frame) else 0.0
-        db = float(10 * np.log10(max(power, 1e-8)))
-        active = db >= (threshold_db - 4 if active else threshold_db)
-        hz, confidence = pitch(frame, rate) if active else (0.0, 0.0)
-        values[index] = (db, hz, confidence, active)
+        values[index], active = frame_features(samples[start:end], end - start, rate, active, threshold_db)
     return values
+
+
+class AudioFrontend:
+    """Streaming version of ``extract`` for a live microphone/agent-audio process.
+
+    Feed exactly one 50 ms block per track per call; publish the result as an
+    ``audio`` sample stamped at the block's end on the session clock.
+    """
+
+    def __init__(self, rate: int, threshold_db: float = -40):
+        self.rate, self.threshold_db = rate, threshold_db
+        self.index = 0
+        self.active = [False, False]
+
+    def frame(self, partner: np.ndarray, agent: np.ndarray | None = None) -> np.ndarray:
+        length = round((self.index + 1) * FRAME_S * self.rate) - round(self.index * FRAME_S * self.rate)
+        values = np.zeros(8, dtype=np.float32)
+        values[:4], self.active[0] = frame_features(partner, length, self.rate, self.active[0], self.threshold_db)
+        if agent is None:
+            values[4] = -80
+        else:
+            values[4:], self.active[1] = frame_features(agent, length, self.rate, self.active[1], self.threshold_db)
+        self.index += 1
+        return values
 
 
 def extract(partner: tuple[np.ndarray, int], agent: tuple[np.ndarray, int] | None = None,

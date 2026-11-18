@@ -180,6 +180,12 @@ def align(source: TimedSource, query: np.ndarray, max_age_s: float,
     return aligned, observed, np.where(index >= 0, age, np.inf)
 
 
+def teacher_source(path: Path) -> str:
+    """Provenance tag carried by a teacher file; scripted stand-ins mark themselves."""
+    with np.load(path, allow_pickle=False) as data:
+        return str(data["source"]) if "source" in data else "external_export_unverified"
+
+
 def load_teacher(path: Path, teacher_map: Path | None, offset_s: float = 0.0) -> TimedSource:
     with np.load(path, allow_pickle=False) as data:
         if teacher_map is None:
@@ -237,7 +243,7 @@ def prepare_stream(partner: Path, agent: Path | None, stereo: bool, teacher: Pat
     names = list(FEATURE_NAMES)
     report = {
         "frames": len(times), "duration_s": float(times[-1]),
-        "teacher": {"file": str(teacher), "sha256": file_digest(teacher),
+        "teacher": {"file": str(teacher), "sha256": file_digest(teacher), "source": teacher_source(teacher),
                     "mapped_with": str(teacher_map) if teacher_map else None,
                     "clock_offset_s": teacher_offset_s, "max_age_s": TEACHER_MAX_AGE_S,
                     "coverage": float(observed.mean()),
@@ -261,7 +267,8 @@ def prepare_stream(partner: Path, agent: Path | None, stereo: bool, teacher: Pat
     out.parent.mkdir(parents=True, exist_ok=True)
     with out.open("wb") as file:
         np.savez_compressed(file, time_s=times, human=human, human_valid=observed,
-                            context=context, context_names=np.array(names))
+                            context=context, context_names=np.array(names),
+                            teacher_source=np.array(teacher_source(teacher)))
     out.with_suffix(".json").write_text(json.dumps(report, indent=2) + "\n")
     return report
 
@@ -333,9 +340,12 @@ def pack_trial(stream: Path, realized: Path, start_s: float, out: Path) -> None:
 
 
 def pack_recording(stream: Path, realized: Path, out_dir: Path, group: str | None = None,
-                   condition: str | None = None, skip_cold_start: bool = True) -> Path:
+                   condition: str | None = None, skip_cold_start: bool = True,
+                   rating_video: Path | None = None) -> Path:
     """Package every complete chunk and write an unrated manifest fragment for annotation."""
     times, human, context, starts, states, motion, meta = _recording(stream, realized)
+    if rating_video is not None:
+        meta["rating_video"] = str(Path(rating_video).resolve())
     session = meta.get("session_id") or realized.parent.name
     group = group or meta.get("participant_group") or session
     profile = meta.get("profile", "full")
@@ -350,6 +360,7 @@ def pack_recording(stream: Path, realized: Path, out_dir: Path, group: str | Non
         row = {"id": f"{session}-{index * 50:06d}ms", "group": group, "origin": meta.get("origin", "recorded"),
                "file": name, "pair": f"{meta.get('context_id', session)}-{index * 50:06d}ms",
                "condition": condition or meta.get("policy"), "start_s": round(float(start), 3),
+               "motion_source": meta.get("origin"), "teacher_source": meta.get("teacher_source"),
                "intent": None, "votes": {}}
         if meta.get("capabilities") is not None and profile not in ("full", "fixed-neck-pitch", "fixed-eyes"):
             row["capabilities"] = meta["capabilities"]

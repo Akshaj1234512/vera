@@ -27,7 +27,12 @@ class MujocoRobot(RobotInterface):
     """Position actuators with per-channel speed limits; measured state from qpos/qvel."""
 
     def __init__(self, limits: np.ndarray, video: Path | None = None, audio: Path | None = None,
-                 title: str = "", output: Path | None = None):
+                 title: str = "", output: Path | None = None, rating_video: Path | None = None):
+        """``video`` carries labels for presentations; ``rating_video`` has no text at all.
+
+        Observers only ever see ``rating_video``: same camera and frames, but no policy,
+        profile, chunk or R overlay that could reveal the condition or a prediction.
+        """
         import mujoco
 
         self.mujoco = mujoco
@@ -58,17 +63,21 @@ class MujocoRobot(RobotInterface):
         self.caption = ""
         self.frame_count = 0
         self.renderer = self.process = self.scratch = None
-        if video is not None:
+        self.outputs = {name: path for name, path in (("labeled", video), ("rating", rating_video)) if path}
+        self.pipes = {}
+        if self.outputs:
             if output is not None:
                 output.mkdir(parents=True, exist_ok=True)
             self.scratch = TemporaryDirectory(dir=output, prefix="video-")
-            self.encoded = Path(self.scratch.name) / "silent.mp4"
             self.renderer = mujoco.Renderer(self.model, height=HEIGHT, width=WIDTH)
-            self.process = subprocess.Popen([
-                "ffmpeg", "-nostdin", "-v", "error", "-y", "-f", "rawvideo", "-pix_fmt", "rgb24",
-                "-s", f"{WIDTH}x{HEIGHT}", "-r", str(FPS), "-i", "pipe:0", "-c:v", "libx264",
-                "-preset", "fast", "-pix_fmt", "yuv420p", "-movflags", "+faststart", str(self.encoded),
-            ], stdin=subprocess.PIPE)
+            for name in self.outputs:
+                self.pipes[name] = subprocess.Popen([
+                    "ffmpeg", "-nostdin", "-v", "error", "-y", "-f", "rawvideo", "-pix_fmt", "rgb24",
+                    "-s", f"{WIDTH}x{HEIGHT}", "-r", str(FPS), "-i", "pipe:0", "-c:v", "libx264",
+                    "-preset", "fast", "-pix_fmt", "yuv420p", "-movflags", "+faststart",
+                    str(Path(self.scratch.name) / f"{name}.mp4"),
+                ], stdin=subprocess.PIPE)
+            self.process = True
 
     def _channels(self, values: np.ndarray) -> np.ndarray:
         result, k = [], 0
@@ -115,7 +124,13 @@ class MujocoRobot(RobotInterface):
         from matplotlib import get_data_path
 
         self.renderer.update_scene(self.data, camera="three_quarter")
-        image = Image.fromarray(self.renderer.render())
+        pixels = self.renderer.render()
+        if "rating" in self.pipes:
+            self.pipes["rating"].stdin.write(np.ascontiguousarray(pixels).tobytes())
+        self.frame_count += 1
+        if "labeled" not in self.pipes:
+            return
+        image = Image.fromarray(pixels)
         draw = ImageDraw.Draw(image)
         font_path = Path(get_data_path()) / "fonts/ttf/DejaVuSans.ttf"
         draw.rectangle((0, 0, WIDTH, 54), fill="#111a27")
@@ -124,24 +139,24 @@ class MujocoRobot(RobotInterface):
         small = ImageFont.truetype(str(font_path), 13)
         draw.text((21, 33), self.title, font=small, fill="#a5b7ce")
         draw.text((21, HEIGHT - 28), self.caption, font=small, fill="#f8fafc")
-        self.process.stdin.write(image.tobytes())
-        self.frame_count += 1
+        self.pipes["labeled"].stdin.write(image.tobytes())
 
     def close(self) -> dict:
         if self.renderer is not None:
             self.renderer.close()
         if self.process is not None:
-            self.process.stdin.close()
-            self.process.wait()
-            if self.process.returncode != 0:
-                raise RuntimeError("ffmpeg could not encode MuJoCo frames")
-            self.video.parent.mkdir(parents=True, exist_ok=True)
-            if self.audio is None:
-                self.encoded.replace(self.video)
-            else:
-                subprocess.run(["ffmpeg", "-nostdin", "-v", "error", "-y", "-i", str(self.encoded),
-                                "-i", str(self.audio), "-map", "0:v:0", "-map", "1:a:0", "-c:v", "copy",
-                                "-c:a", "aac", "-movflags", "+faststart", "-shortest", str(self.video)], check=True)
+            for name, pipe in self.pipes.items():
+                pipe.stdin.close()
+                pipe.wait()
+                if pipe.returncode != 0:
+                    raise RuntimeError("ffmpeg could not encode MuJoCo frames")
+                encoded, target = Path(self.scratch.name) / f"{name}.mp4", self.outputs[name]
+                target.parent.mkdir(parents=True, exist_ok=True)
+                audio = ["-i", str(self.audio), "-map", "1:a:0", "-c:a", "aac", "-shortest"] if self.audio else []
+                # -map_metadata -1 drops container tags so files carry no condition hints.
+                subprocess.run(["ffmpeg", "-nostdin", "-v", "error", "-y", "-i", str(encoded), *audio[:2],
+                                "-map", "0:v:0", *audio[2:], "-c:v", "copy", "-map_metadata", "-1",
+                                "-movflags", "+faststart", str(target)], check=True)
             self.scratch.cleanup()
             self.process = None
         return {"model": self.model_path.name, "duration_s": round(float(self.data.time), 4),

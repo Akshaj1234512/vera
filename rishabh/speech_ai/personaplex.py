@@ -16,7 +16,7 @@ DEFAULT_PROMPT = (
 
 
 def run(input_wav: Path, output: Path, python: str, device: str, voice: str, prompt: str,
-        seed: int, cpu_offload: bool, capture: bool) -> Path:
+        seed: int, cpu_offload: bool, capture: bool, publish: str | None = None) -> Path:
     output.mkdir(parents=True, exist_ok=True)
     bridge = Path(__file__).with_name("personaplex_offline.py").resolve()
     with TemporaryDirectory(dir=output, prefix="personaplex-") as temporary:
@@ -31,6 +31,8 @@ def run(input_wav: Path, output: Path, python: str, device: str, voice: str, pro
                    "--hf-repo", MODEL_REPO, "--seed", str(seed), "--device", device]
         if cpu_offload:
             command.append("--cpu-offload")
+        if publish:
+            command += ["--publish", publish]
         start = perf_counter()
         subprocess.run(command, check=True)
         wall_s = perf_counter() - start

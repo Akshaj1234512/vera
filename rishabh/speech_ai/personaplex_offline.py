@@ -8,13 +8,43 @@ warming up and prefilling the voice and system prompts.
 from contextlib import contextmanager
 import json
 from pathlib import Path
+import socket
 import sys
+import time
 
 import numpy as np
 
 
+class StatePublisher:
+    """Streams states to ``gr-live --listen`` (JSON lines; see speech_ai/gr_link.py).
+
+    Each state is stamped on the G session clock: the session time when input began
+    plus the PersonaPlex frame time, never later than the moment it is sent.
+    """
+
+    def __init__(self, address: str):
+        host, _, port = address.rpartition(":")
+        self.socket = socket.create_connection((host or "127.0.0.1", int(port)), timeout=5)
+        hello = json.loads(self.socket.makefile("rb").readline())
+        self.start_unix = hello["start_unix"]
+        self.input_start = None
+
+    def now(self) -> float:
+        return time.time() - self.start_unix
+
+    def send(self, frame_time: float, values) -> None:
+        if self.input_start is None:
+            self.input_start = self.now() - frame_time
+        stamp = min(self.input_start + frame_time, self.now())
+        line = {"source": "states", "time_s": stamp, "values": [float(v) for v in values]}
+        self.socket.sendall(json.dumps(line).encode() + b"\n")
+
+    def close(self) -> None:
+        self.socket.close()
+
+
 @contextmanager
-def capture_states(offline, destination: Path):
+def capture_states(offline, destination: Path | None, publisher: StatePublisher | None = None):
     original_load = offline.lm_load_audio
     original_step = offline.LMGen.step
     original_output = offline.LMGen.process_transformer_output
@@ -43,6 +73,8 @@ def capture_states(offline, destination: Path):
             if current is not None:
                 times.append(round(frame_count * gen._frame_size / gen._sample_rate, 6))
                 states.append(current)
+                if publisher is not None:
+                    publisher.send(times[-1], current)
 
     def capture_output(gen, transformer_out, *args, **kwargs):
         nonlocal current
@@ -62,7 +94,8 @@ def capture_states(offline, destination: Path):
         offline.LMGen.process_transformer_output = original_output
     if not states:
         raise RuntimeError("No PersonaPlex speech states captured. Check the NVIDIA Moshi version.")
-    np.savez_compressed(destination, time_s=np.array(times), features=np.stack(states))
+    if destination is not None:
+        np.savez_compressed(destination, time_s=np.array(times), features=np.stack(states))
 
 
 def main() -> None:
@@ -71,6 +104,11 @@ def main() -> None:
 
     metadata_path, trace_path = sys.argv[1:3]
     sys.argv[1:3] = []
+    publisher = None
+    if "--publish" in sys.argv:
+        at = sys.argv.index("--publish")
+        publisher = StatePublisher(sys.argv[at + 1])
+        del sys.argv[at:at + 2]
     try:
         package = distribution("moshi-personaplex")
         source = json.loads(package.read_text("direct_url.json") or "{}")
@@ -79,10 +117,10 @@ def main() -> None:
     except PackageNotFoundError:
         provenance = {"moshi_version": None, "source_revision": None}
 
-    if trace_path == "-":
+    if trace_path == "-" and publisher is None:
         offline.main()
     else:
-        with capture_states(offline, Path(trace_path)):
+        with capture_states(offline, None if trace_path == "-" else Path(trace_path), publisher):
             offline.main()
     Path(metadata_path).write_text(json.dumps(provenance) + "\n")
 

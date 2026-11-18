@@ -19,10 +19,11 @@ python -m venv .venv && .venv/bin/pip install -r requirements.txt
 | Capture PersonaPlex states | `personaplex partner.wav --python <env>/bin/python --capture-states --out runs/pp` | `states.npz` (`time_s`, `features`) |
 | Fit the DyaPlex map (decoded features only) | `gr-fit-map pairs.json --out calibration.npz` | ridge map, held-out MAE/R² |
 | Align inputs on the 20 Hz clock | `gr-prepare partner.wav --agent robot.wav --teacher dyaplex.npz [--teacher-map calibration.npz] [--embeddings states.npz] --out stream.npz` | `stream.npz` + `stream.json` coverage report |
-| Run the chunk loop on a robot | `gr-live …` (arriving inputs) or `gr-replay stream.npz …` (prepared stream) | `realized-motion.npz`, `interpretations.json` |
+| Run G live | `gr-live --listen HOST:PORT --wait-for-producers N --robot network --robot-address … --calibration calib.json …`; producers: DyaPlex, `personaplex --publish`, `AudioFrontend` (dry run: `gr-publish`) | `stream.npz` (what G saw), `realized-motion.npz`, `interpretations.json` |
+| Replay a prepared stream | `gr-replay stream.npz …` (MuJoCo, kinematic, or `--robot network` for paired hardware trials) | same, plus a text-free `rating-source.mp4` when `--video` is set |
 | Package 500 ms chunks | `gr-trial stream.npz realized-motion.npz --all --out trials/s01` | trial NPZs + `trials.json` |
 | Build the manifest | `gr-manifest trials/*/trials.json --intents intents.csv --out manifest.json` | unrated manifest |
-| Observer study | `gr-rating-packet manifest.json --out packet` → raters fill the sheet → `gr-votes manifest.json --key packet/key.json sheets/*.csv --out rated.json` | vote counts per trial |
+| Observer study | `gr-rating-packet manifest.json --out packet` (blinded clips from the text-free render; key written outside the packet) → raters fill the sheet → `gr-votes manifest.json --key packet-key.json sheets/*.csv --out rated.json` | vote counts per trial, tagged as from rating sheets |
 | Train | `gr-train rated.json --out runs/gr-real` (`--imitation-only` to bootstrap from teleop, `--residual` for M_direct + ΔM) | `g.pt`, `r.pt`, `evaluation.json`, `g-imitation.pt` |
 | Evaluate substitution | `gr-evaluate rated.json --r runs/gr-real/r.pt --sessions runs/... --out report.json` | per-condition intended-vote share and unclear rate |
 
@@ -51,4 +52,6 @@ ffmpeg -i runs/gr-v2/demo-projected-fixed-neck-pitch/replay.mp4 -i runs/gr-v2/de
 
 `runs/gr-v2/vera-gr-speech-demo.mp4` shows three panels side by side with the conversation audio: the projected baseline with neck pitch locked, G with neck pitch locked, and G with the full face. The teacher motion is **scripted from the audio and is not DyaPlex**. G and R were trained on synthetic votes. Treat the video as an integration demo, not evidence.
 
-[Design-to-code mapping, data contract, protocols, results and open gaps](EXPERIMENTS.md)
+Every report labels its evidence: `unrated`, `synthetic_votes`, `human_votes_on_simulated_motion` or `human_votes_on_robot_motion`. As of now only synthetic and simulator results exist, and no human has rated a clip.
+
+[Design-to-code mapping, data contract, protocols, results and what is blocked](EXPERIMENTS.md)

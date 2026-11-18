@@ -30,7 +30,7 @@ def add_commands(commands: argparse._SubParsersAction) -> None:
                             help="'projected' replays constrained DyaPlex motion as the baseline")
         parser.add_argument("--profile", choices=PROFILE_CHOICES, default="full")
         parser.add_argument("--calibration", type=Path, help="custom capability JSON {channel: [enabled, min, max, rad/s]}")
-        parser.add_argument("--robot", choices=("mujoco", "kinematic"), default="mujoco")
+        parser.add_argument("--robot", choices=("mujoco", "kinematic", "network"), default="mujoco")
         parser.add_argument("--session", help="session id recorded with the motion")
         parser.add_argument("--group", help="participant/session split group")
         parser.add_argument("--out", type=Path, required=True)
@@ -81,7 +81,8 @@ def add_commands(commands: argparse._SubParsersAction) -> None:
     def trial(args):
         from .gr_data import pack_recording, pack_trial
         if args.all:
-            _print(pack_recording(args.stream, args.realized, args.out, args.group, args.condition))
+            _print(pack_recording(args.stream, args.realized, args.out, args.group, args.condition,
+                                  rating_video=args.rating_video))
         else:
             if args.start_s is None:
                 raise SystemExit("--start-s or --all is required")
@@ -95,6 +96,8 @@ def add_commands(commands: argparse._SubParsersAction) -> None:
     p.add_argument("--all", action="store_true", help="package every chunk into --out (a directory)")
     p.add_argument("--group")
     p.add_argument("--condition")
+    p.add_argument("--rating-video", type=Path,
+                   help="text-free camera recording of the robot with conversation audio, on the session clock")
     p.add_argument("--out", type=Path, required=True)
 
     def manifest(args):
@@ -114,6 +117,8 @@ def add_commands(commands: argparse._SubParsersAction) -> None:
                      args.meaning_weight, args.smooth_weight, residual=args.residual,
                      imitation_only=args.imitation_only, demo_weight=args.demo_weight)
         print(args.out / "evaluation.json")
+        if not report["data"]["human_observer_evidence"]:
+            print("NOTE: no human observer votes in this manifest; R and G results are not human evidence.")
         if "observer_test" in report:
             test = report["observer_test"]
             print(f"R held-out cross-entropy {test['soft_cross_entropy']:.3f} | "
@@ -134,25 +139,50 @@ def add_commands(commands: argparse._SubParsersAction) -> None:
     def replay(args):
         from .gr_runtime import replay as run
         report = run(args.stream, args.g, args.r, args.profile, args.out, args.calibration, args.policy,
-                     args.video, args.audio, args.title, args.robot, args.session, args.group)
+                     args.video, args.audio, args.title, args.robot, args.session, args.group, args.robot_address)
         print(f"{args.out} | {report['policy']} / {report['profile']} | {json.dumps(report['metrics'])}")
 
     p = command("gr-replay", "drive a robot adapter from a prepared stream (simulator check)", replay)
     p.add_argument("stream", type=Path)
     models(p)
     p.add_argument("--audio", type=Path, help="audio to mux into --video")
+    p.add_argument("--robot-address", help="HOST:PORT of the robot bridge for --robot network")
 
     def live(args):
-        from .gr_runtime import live as run
-        report = run(args.input, args.agent, args.stereo, args.teacher, args.teacher_map, args.embeddings,
-                     args.g, args.r, args.profile, args.out, args.calibration, args.policy, args.session,
-                     args.group, args.context_id, args.audio_latency_s, args.teacher_offset_s,
-                     args.states_offset_s, args.robot, args.video, args.title)
-        print(f"{args.out} | {report['policy']} / {report['profile']} | {json.dumps(report['metrics'])}")
+        if args.listen:
+            from .gr_link import serve
+            offsets = {"teacher": args.teacher_offset_s, "states": args.states_offset_s, "audio": 0.0}
+            report = serve(args.listen, args.duration_s, args.g, args.r, args.profile, args.out, args.calibration,
+                           args.policy, args.robot, args.robot_address, args.state_dim, args.teacher_map, offsets,
+                           args.session, args.group, args.context_id, args.video, args.conversation_audio, args.title,
+                           ready=lambda address: print(f"listening on {address[0]}:{address[1]}", flush=True),
+                           wait_for_producers=args.wait_for_producers)
+        else:
+            if args.input is None or args.teacher is None:
+                raise SystemExit("Give --listen HOST:PORT for live inputs, or INPUT and --teacher to rehearse from files")
+            from .gr_runtime import live as run
+            report = run(args.input, args.agent, args.stereo, args.teacher, args.teacher_map, args.embeddings,
+                         args.g, args.r, args.profile, args.out, args.calibration, args.policy, args.session,
+                         args.group, args.context_id, args.audio_latency_s, args.teacher_offset_s,
+                         args.states_offset_s, args.robot, args.video, args.title)
+        if report.get("aborted"):
+            print(f"ABORTED: {report['aborted']}")
+        print(f"{args.out} | {report['origin']} | {report['policy']} / {report['profile']} | "
+              f"{json.dumps(report['metrics'])}")
 
-    p = command("gr-live", "run the chunk loop on arriving inputs and record a session", live)
-    audio_inputs(p)
-    p.add_argument("--teacher", type=Path, required=True)
+    p = command("gr-live", "run G live on arriving inputs (--listen) or rehearse from recorded files", live)
+    p.add_argument("input", type=Path, nargs="?", help="rehearsal only: partner WAV defining the clock")
+    channels = p.add_mutually_exclusive_group()
+    channels.add_argument("--agent", type=Path)
+    channels.add_argument("--stereo", action="store_true")
+    p.add_argument("--listen", help="HOST:PORT for producer JSON lines (live mode)")
+    p.add_argument("--duration-s", type=float, default=60.0, help="live session length")
+    p.add_argument("--wait-for-producers", type=int, default=0,
+                   help="start the session clock only once this many producers have connected")
+    p.add_argument("--robot-address", help="HOST:PORT of the robot bridge for --robot network")
+    p.add_argument("--state-dim", type=int, help="PersonaPlex width when the policy has no checkpoint")
+    p.add_argument("--conversation-audio", type=Path, help="session-clock WAV to mux into the videos")
+    p.add_argument("--teacher", type=Path, help="rehearsal only: recorded teacher NPZ")
     p.add_argument("--teacher-map", type=Path)
     p.add_argument("--embeddings", type=Path)
     p.add_argument("--teacher-offset-s", type=float, default=0.0)
@@ -161,15 +191,28 @@ def add_commands(commands: argparse._SubParsersAction) -> None:
     p.add_argument("--context-id", help="shared id for paired sessions over the same conversation")
     models(p)
 
+    def publish(args):
+        from .gr_link import publish_files
+        _print(publish_files(args.address, args.input, args.agent, args.stereo, args.teacher, args.embeddings,
+                             args.latency_s))
+
+    p = command("gr-publish", "dry run: stream recorded inputs into gr-live --listen in real time", publish)
+    p.add_argument("address", help="HOST:PORT printed by gr-live --listen")
+    audio_inputs(p)
+    p.add_argument("--teacher", type=Path, help="teacher NPZ in the DyaPlex motion format")
+    p.add_argument("--embeddings", type=Path, help="PersonaPlex states.npz")
+    p.add_argument("--latency-s", type=float, default=0.0, help="simulated delivery delay")
+
     def packet(args):
         from .gr_eval import rating_packet
-        _print(rating_packet(args.manifest, args.out, args.context_s, seed=args.seed))
+        _print(rating_packet(args.manifest, args.out, args.context_s, seed=args.seed, key_path=args.key))
 
     p = command("gr-rating-packet", "cut blinded clips and a rating sheet for observers", packet)
     p.add_argument("manifest", type=Path)
     p.add_argument("--out", type=Path, required=True)
     p.add_argument("--context-s", type=float, default=3.0)
     p.add_argument("--seed", type=int)
+    p.add_argument("--key", type=Path, help="where to write the code key (default: <out>-key.json, outside --out)")
 
     def votes(args):
         from .gr_eval import merge_votes

@@ -2,9 +2,20 @@
 
 Intended interpretations live in the manifest's ``intent`` field, written by the
 experimenter. Observer votes are counted separately and never shown with intent.
+
+Evidence is labeled per trial and never upgraded implicitly:
+
+* ``unrated``: no votes.
+* ``synthetic_votes``: votes that did not come through ``gr-votes`` rating sheets
+  (fixtures, hand-entered counts) or a manifest marked synthetic.
+* ``human_votes_on_simulated_motion``: observer sheets, motion from MuJoCo/kinematic runs.
+* ``human_votes_on_robot_motion``: observer sheets, motion measured on the physical robot.
+
+Separately, ``teacher`` says whether G's input was a real DyaPlex export or a scripted stand-in.
 """
 
 import csv
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -14,6 +25,11 @@ import subprocess
 import numpy as np
 
 UNCLEAR = "unclear"
+SHEET = "observer_rating_sheets"
+SIMULATED_MOTION = {"simulator_replay", "live_rehearsal_from_files", "live_simulated_robot",
+                    "live_network_unknown_embodiment", "synthetic_gr_fixture"}
+SYNTHETIC_ORIGINS = {"synthetic_gr_fixture"}
+SCRIPTED_TEACHERS = {"synthetic_listener_script_not_dyaplex"}
 
 
 def build_manifest(fragments: list[Path], labels: list[str], out: Path, intents: Path | None = None,
@@ -31,13 +47,16 @@ def build_manifest(fragments: list[Path], labels: list[str], out: Path, intents:
     rows, seen = [], set()
     for fragment in fragments:
         data = json.loads(fragment.read_text())
+        rating_video = data["source"].get("rating_video")
         for row in data["trials"]:
             if row["id"] in seen:
                 raise ValueError(f"Duplicate trial id {row['id']}")
             seen.add(row["id"])
             row = dict(row)
             row["file"] = os.path.relpath((fragment.parent / row["file"]).resolve(), out.parent.resolve())
-            row["video"] = data["source"].get("video") and str(Path(data["source"]["video"]).resolve())
+            # Only the text-free rating render may be shown to observers.
+            row["rating_video"] = str(Path(rating_video).resolve()) if rating_video else None
+            row.pop("video", None)
             if row.get("intent") is None and row["pair"] in intent_by_pair:
                 row["intent"] = intent_by_pair[row["pair"]]
             rows.append(row)
@@ -47,13 +66,24 @@ def build_manifest(fragments: list[Path], labels: list[str], out: Path, intents:
 
 
 def rating_packet(manifest: Path, out: Path, context_s: float = 3.0, tail_s: float = 0.5,
-                  seed: int | None = None) -> dict:
-    """Cut a clip per trial (prior conversation context + the 500 ms chunk), with opaque codes.
+                  seed: int | None = None, key_path: Path | None = None) -> dict:
+    """Cut one blinded clip per trial: prior conversation context + the 500 ms chunk.
 
-    Raters get ``clips/`` and ``rating-sheet.csv``. ``key.json`` maps codes to trials and
-    conditions and stays with the experimenter.
+    Raters get ``out`` (``clips/``, ``rating-sheet.csv``, ``labels.txt``). The key that maps
+    codes to trials, conditions and profiles is written *outside* that folder.
+    Every trial must have a text-free rating video; otherwise nothing is written.
     """
     data = json.loads(manifest.read_text())
+    missing = [row["id"] for row in data["trials"]
+               if not row.get("rating_video") or not Path(row["rating_video"]).is_file()
+               or row.get("start_s") is None]
+    if missing:
+        raise ValueError(f"{len(missing)} trial(s) have no rating video or start time; render them with "
+                         f"--video and rebuild the manifest first: {', '.join(missing[:5])}"
+                         + (" ..." if len(missing) > 5 else ""))
+    key_path = key_path or out.parent / f"{out.name}-key.json"
+    if key_path.resolve().is_relative_to(out.resolve()):
+        raise ValueError("The key must live outside the folder given to raters")
     rng = np.random.default_rng(seed)
     order = rng.permutation(len(data["trials"]))
     (out / "clips").mkdir(parents=True, exist_ok=True)
@@ -65,31 +95,31 @@ def rating_packet(manifest: Path, out: Path, context_s: float = 3.0, tail_s: flo
             code = secrets.token_hex(4)
         key[code] = {"id": row["id"], "condition": row.get("condition"), "profile": row.get("profile"),
                      "pair": row.get("pair")}
-        video = row.get("video")
-        if video:
-            start = max(0.0, row["start_s"] - context_s)
-            subprocess.run(["ffmpeg", "-nostdin", "-v", "error", "-y", "-ss", f"{start:.3f}", "-i", video,
-                            "-t", f"{row['start_s'] + 0.5 + tail_s - start:.3f}", "-c:v", "libx264",
-                            "-c:a", "aac", str(out / "clips" / f"{code}.mp4")], check=True)
+        start = max(0.0, row["start_s"] - context_s)
+        subprocess.run(["ffmpeg", "-nostdin", "-v", "error", "-y", "-ss", f"{start:.3f}", "-i", row["rating_video"],
+                        "-t", f"{row['start_s'] + 0.5 + tail_s - start:.3f}", "-map_metadata", "-1",
+                        "-c:v", "libx264", "-c:a", "aac", str(out / "clips" / f"{code}.mp4")], check=True)
         sheet.append({"clip_code": code, "rater_id": "", "label": "", "notes": ""})
     with (out / "rating-sheet.csv").open("w", newline="") as file:
         writer = csv.DictWriter(file, fieldnames=["clip_code", "rater_id", "label", "notes"])
         writer.writeheader()
         writer.writerows(sheet)
     (out / "labels.txt").write_text("\n".join(data["labels"]) + "\n")
-    (out / "key.json").write_text(json.dumps({"manifest": str(manifest.resolve()), "clips": key}, indent=2) + "\n")
-    return {"clips": len(key), "packet": str(out)}
+    key_path.parent.mkdir(parents=True, exist_ok=True)
+    key_path.write_text(json.dumps({"manifest": str(manifest.resolve()), "clips": key}, indent=2) + "\n")
+    return {"clips": len(key), "packet": str(out), "key": str(key_path)}
 
 
 def merge_votes(manifest: Path, key: Path, responses: list[Path], out: Path) -> dict:
-    """Count one vote per (rater, clip) into each trial's ``votes``."""
+    """Count one vote per (rater, clip) from observer sheets into each trial's ``votes``."""
     data = json.loads(manifest.read_text())
     labels = data["labels"]
     clips = json.loads(key.read_text())["clips"]
     by_id = {row["id"]: row for row in data["trials"]}
     counts: dict[str, dict[str, int]] = {}
-    raters, seen = set(), set()
+    raters, seen, digests = set(), set(), []
     for path in responses:
+        digests.append(hashlib.sha256(path.read_bytes()).hexdigest())
         with path.open() as file:
             for line in csv.DictReader(file):
                 code, rater, label = line["clip_code"].strip(), line["rater_id"].strip(), line["label"].strip()
@@ -106,61 +136,98 @@ def merge_votes(manifest: Path, key: Path, responses: list[Path], out: Path) -> 
                 counts[trial][label] += 1
     for trial, votes in counts.items():
         row = by_id[trial]
+        if row.get("votes") and row.get("vote_source") != SHEET:
+            raise ValueError(f"{trial}: already has votes that did not come from rating sheets")
         merged = dict(row.get("votes") or {})
         for label, n in votes.items():
             merged[label] = merged.get(label, 0) + n
-        row["votes"] = merged
+        row["votes"], row["vote_source"] = merged, SHEET
     data.setdefault("rating", {})
     data["rating"]["raters"] = sorted(set(data["rating"].get("raters", [])) | raters)
+    data["rating"]["sheet_sha256"] = sorted(set(data["rating"].get("sheet_sha256", [])) | set(digests))
     out.write_text(json.dumps(data, indent=2) + "\n")
     return {"trials_with_votes": len(counts), "raters": len(raters), "ratings": len(seen)}
 
 
+def trial_evidence(row: dict, synthetic_manifest: bool) -> str:
+    if not row.get("votes"):
+        return "unrated"
+    if synthetic_manifest or row.get("vote_source") != SHEET or row.get("origin") in SYNTHETIC_ORIGINS:
+        return "synthetic_votes"
+    motion = row.get("motion_source") or row.get("origin")
+    return "human_votes_on_simulated_motion" if motion in SIMULATED_MOTION else "human_votes_on_robot_motion"
+
+
+def teacher_kind(row: dict) -> str:
+    source = row.get("teacher_source")
+    if source in SCRIPTED_TEACHERS or row.get("origin") in SYNTHETIC_ORIGINS:
+        return "scripted_or_synthetic"
+    return "unverified" if source in (None, "unrecorded", "external_export_unverified") else source
+
+
 def evaluate(manifest: Path, out: Path, sessions: list[Path] | None = None, observer: Path | None = None) -> dict:
-    """Per condition: intended-vote share, unclear rate, and counts; plus R and motion metrics."""
+    """Per condition and evidence tier: intended-vote share, unclear rate and counts."""
     data = json.loads(manifest.read_text())
     labels = data["labels"]
-    evidence = "synthetic" if data.get("synthetic") else "human_observer_votes"
+    synthetic = bool(data.get("synthetic"))
     conditions: dict[str, dict] = {}
+    unrated: dict[str, int] = {}
     for row in data["trials"]:
-        votes = row.get("votes") or {}
-        if not votes or row.get("intent") is None:
-            continue
+        tier = trial_evidence(row, synthetic)
         name = f"{row.get('condition') or 'unspecified'} / {row.get('profile') or 'custom'}"
-        entry = conditions.setdefault(name, {"trials": 0, "ratings": 0, "intended_votes": 0, "unclear_votes": 0,
-                                             "majority_matches_intent": 0, "pairs": {}})
+        if tier == "unrated" or row.get("intent") is None:
+            unrated[name] = unrated.get(name, 0) + 1
+            continue
+        key = f"{name} [{tier}]"
+        entry = conditions.setdefault(key, {"condition": name, "evidence": tier, "teacher": set(), "trials": 0,
+                                            "ratings": 0, "intended_votes": 0, "unclear_votes": 0,
+                                            "majority_matches_intent": 0, "pairs": {}})
+        votes = row["votes"]
         total = sum(votes.values())
+        entry["teacher"].add(teacher_kind(row))
         entry["trials"] += 1
         entry["ratings"] += total
         entry["intended_votes"] += votes.get(row["intent"], 0)
         entry["unclear_votes"] += votes.get(UNCLEAR, 0)
-        majority = max(votes, key=votes.get)
-        entry["majority_matches_intent"] += majority == row["intent"]
+        entry["majority_matches_intent"] += max(votes, key=votes.get) == row["intent"]
         entry["pairs"][row.get("pair")] = votes.get(row["intent"], 0) / total
-    report = {"evidence": evidence, "labels": labels,
-              "raters": len(data.get("rating", {}).get("raters", [])) or None, "conditions": {}}
-    for name, entry in conditions.items():
-        report["conditions"][name] = {
+    tiers = sorted({entry["evidence"] for entry in conditions.values()})
+    human_tiers = [t for t in tiers if t.startswith("human_")]
+    report = {
+        "evidence_tiers_present": tiers or ["unrated"],
+        "human_observer_evidence": bool(human_tiers),
+        "human_evidence_on_physical_robot": "human_votes_on_robot_motion" in tiers,
+        "labels": labels,
+        "raters": len(data.get("rating", {}).get("raters", [])) if human_tiers else 0,
+        "unrated_trials_by_condition": unrated,
+        "conditions": {},
+    }
+    for key, entry in conditions.items():
+        report["conditions"][key] = {
+            "condition": entry["condition"], "evidence": entry["evidence"], "teacher": sorted(entry["teacher"]),
             "trials": entry["trials"], "ratings": entry["ratings"],
             "intended_vote_share": entry["intended_votes"] / entry["ratings"],
             "unclear_rate": entry["unclear_votes"] / entry["ratings"],
             "majority_matches_intent": entry["majority_matches_intent"] / entry["trials"],
         }
-    # Paired comparison: same conversation moment, different condition.
-    names = sorted(conditions)
+    # Paired comparison: same conversation moment and evidence tier, different condition.
     comparisons = []
+    names = sorted(conditions)
     for i, a in enumerate(names):
         for b in names[i + 1:]:
+            if conditions[a]["evidence"] != conditions[b]["evidence"]:
+                continue
             shared = set(conditions[a]["pairs"]) & set(conditions[b]["pairs"]) - {None}
             if shared:
                 diff = [conditions[b]["pairs"][p] - conditions[a]["pairs"][p] for p in shared]
-                comparisons.append({"a": a, "b": b, "shared_contexts": len(shared),
+                comparisons.append({"a": a, "b": b, "evidence": conditions[a]["evidence"],
+                                    "shared_contexts": len(shared),
                                     "mean_intended_share_b_minus_a": float(np.mean(diff)),
                                     "b_better": int(sum(d > 0 for d in diff)),
                                     "a_better": int(sum(d < 0 for d in diff))})
     report["paired_comparisons"] = comparisons
     if observer is not None:
-        report["r_predictions"] = r_predictions(manifest, observer)
+        report["r_predictions"] = {"evidence": "model_proxy_not_human", **r_predictions(manifest, observer)}
     if sessions:
         report["sessions"] = {}
         for path in sessions:
@@ -170,9 +237,9 @@ def evaluate(manifest: Path, out: Path, sessions: list[Path] | None = None, obse
             mean = ({label: float(np.mean([p[label] for p in probabilities])) for label in probabilities[0]}
                     if probabilities else None)
             report["sessions"][str(path)] = {
-                "evidence": "simulator_replay" if session.get("synthetic_or_replay") else "recorded",
+                "motion_source": session.get("origin"), "teacher_source": session.get("teacher_source"),
                 "policy": session["policy"], "profile": session["profile"], "metrics": session["metrics"],
-                "r_mean_probabilities_on_realized_motion": mean}
+                "r_mean_probabilities_on_realized_motion": mean, "r_evidence": "model_proxy_not_human"}
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(report, indent=2) + "\n")
     return report

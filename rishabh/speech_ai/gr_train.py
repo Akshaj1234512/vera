@@ -128,10 +128,18 @@ def train(manifest: Path, output: Path, seed: int, epochs: int, refine_epochs: i
     metadata = {"version": CHECKPOINT_VERSION, "channels": list(CHANNELS),
                 "context_dim": context_dim, "labels": labels, "origins": origins,
                 "residual": residual}
+    from .gr_eval import trial_evidence
+
     profiles = sorted({trial.profile for trial in trials})
+    spec = json.loads(manifest.read_text())
+    tiers = {}
+    for row in spec["trials"]:
+        tier = trial_evidence(row, bool(spec.get("synthetic")))
+        tiers[tier] = tiers.get(tier, 0) + 1
     report = {
         "data": {"manifest": str(manifest.resolve()), "sha256": file_digest(manifest),
-                 "synthetic": bool(json.loads(manifest.read_text()).get("synthetic", False)),
+                 "synthetic": bool(spec.get("synthetic", False)), "vote_evidence_trials": tiers,
+                 "human_observer_evidence": any(t.startswith("human_") for t in tiers),
                  "labels": labels, "trials": len(trials)},
         "origins": origins, "seed": seed, "epochs": epochs,
         "generator_mode": "residual" if residual else "direct",

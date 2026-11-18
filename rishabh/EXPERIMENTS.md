@@ -15,9 +15,9 @@ Specification: `Speech.pdf` (5 handwritten pages). Every number below is labeled
 | 2 | Small causal transformer | 2-layer, width 48, causal mask over the 10 history frames | — | Implemented |
 | 2 | Option: M_r = M_direct + ΔM_θ | `--residual`: projected DyaPlex + 0.5 × learned Δ, then capability constraint | `test_residual_is_projected_dyaplex_plus_learned_adjustment` | Implemented, evaluated as its own condition |
 | 3 | DyaPlex expressions can exceed what the robot can do | `constrain_motion`: mask disabled joints, clamp range, clamp per-step speed from q_t | `test_motion_obeys…`, `motion_metrics` | Implemented |
-| 3 | Deploy G in real conversations and observe results | `RobotInterface`, `LiveInputs` (arrival-aware), `gr-live`, session recorder | `test_live_inputs_match_offline_alignment` | Simulator rehearsal only. No robot interface in repo. |
+| 3 | Deploy G in real conversations and observe results | `gr-live --listen` (TCP producers, arrival stamped on receipt, wall-clock pacing), `NetworkRobot` bridge with feedback watchdog, session recorder | `LiveLinkTests`, `test_live_inputs_match_offline_alignment` | Live path runs end to end with MuJoCo and a fake bridge. No DyaPlex producer, PersonaPlex host or physical robot yet. |
 | 3 | Collect wrong-for-context (nod at t = 4.2 s where a brow raise fits) and unrecognizable gestures | [Trial protocol](#paired-trial-protocol). Fixture `case` field covers clear, ambiguous and wrong_intent. | Fixture manifest | Protocol written. Collection pending. |
-| 3 | Dataset of (robot motion, embodiment, context, observer interpretation) | `gr-trial --all` → `gr-manifest` → `gr-rating-packet` → `gr-votes` | `test_blinded_packet_votes_and_condition_report` | Tooling implemented. Votes pending. |
+| 3 | Dataset of (robot motion, embodiment, context, observer interpretation) | `gr-trial --all` → `gr-manifest` → `gr-rating-packet` (blinded, text-free clips) → `gr-votes` → evidence-tiered `gr-evaluate` | `ObserverStudyTests`, `test_rating_render_has_no_labels` | Tooling implemented. Votes pending. |
 | 4 | R_φ(z \| M_r, b_m, x) predicts human interpretation | `Observer` on realized motion, capabilities and context | `observer_test` in `evaluation.json` | Synthetic only |
 | 4 | e.g. fast nod → P(enthusiastic) .78, P(neutral) .17, P(unclear) .05 | Labels `unclear`, `neutral_ack`, `enthusiastic_ack`; soft targets are vote proportions. The PDF numbers are illustrative. | — | Implemented |
 | 4 | Cross-entropy training | Soft-target `F.cross_entropy(logits, vote distribution)` | `observer_test.soft_cross_entropy` | Implemented |
@@ -69,22 +69,47 @@ All clocks are seconds on one recording clock, the start of the partner audio. U
 ## Real-conversation loop (page 3)
 
 ```
-mic / partner audio ─┐
-DyaPlex (teacher)  ──┼─► LiveInputs.push(name, time_s, arrival_s, values)
-PersonaPlex states ──┘          │ at every 500 ms boundary t
-                                ▼
-          RobotInterface.state() ─► q_t ─► G (or projected baseline) ─► 10 targets
-                                                     │ 20 Hz
-                                     RobotInterface.command / advance
-                                                     │
-                     measured robot_rad + commanded_rad + inputs G saw ─► session recording
-                                                     │ after each chunk
-                                         R scores realized motion (evaluation only)
+microphone ─► AudioFrontend ─┐  JSON lines over TCP, stamped on the session clock
+DyaPlex process ─────────────┼─► gr-live --listen  (LiveServer stamps arrival on receipt)
+PersonaPlex --publish ───────┘          │ every 500 ms boundary t, wall-clock paced
+                                        ▼
+   robot bridge state ─► q_t ─► G (or projected baseline) ─► 10 targets ─► robot bridge (20 Hz)
+                                        │
+        commanded + measured motion + exactly what G saw ─► stream.npz + realized-motion.npz
+                                        │ after each chunk
+                            R scores realized motion (evaluation only, never drives)
 ```
 
-The repo has **no physical-robot interface**. The only embodiment code is `../simulation/head.xml` and its MuJoCo demo. The integration points are therefore `RobotInterface` (`gr_runtime.py`), implemented by `MujocoRobot` (`simulate.py`) and `KinematicRobot` (tests).
+**Live mode.** `gr-live --listen HOST:PORT` runs G on inputs that arrive while the session runs.
+- **Clock.** The session clock is the robot computer's monotonic clock. Each producer receives the session start time on connect, so producers on the same machine stamp samples with `Publisher.session_time()`. Producers on other machines pass a measured offset (`--teacher-offset-s`, `--states-offset-s`). `--wait-for-producers N` holds the clock until N producers have connected, so every source starts aligned.
+- **Rejections.** The server stamps arrival when a line is received. It rejects and counts any sample stamped after its own arrival (a clock-offset error), any out-of-order sample, and any sample with the wrong width (`input_stats` in `interpretations.json`).
+- **Pacing.** The loop runs on the wall clock. Each chunk records how late its boundary was (`boundary_late_ms`).
 
-A hardware adapter must implement `state()` (encoder position in rad and velocity in rad/s, per channel), `command(target_rad[8])`, and `advance(seconds)` (wall-clock wait to the next 50 ms tick). It must also supply measured calibration JSON. `gr-live` currently replays recorded files through `FileFeed`, using their `arrival_s`, to rehearse latency. A live deployment pushes samples from the DyaPlex, PersonaPlex and microphone processes instead. **No live or hardware run has happened.**
+The message schema is in the `gr_link.py` docstring:
+- `teacher`: 8 normalized channels
+- `teacher_features`: decoded DyaPlex features, projected with `--teacher-map`
+- `states`: PersonaPlex state
+- `audio`: 8 raw features from `audio.AudioFrontend`, which reproduces `extract()` exactly
+
+**Producers.**
+- **PersonaPlex.** `python -m speech_ai personaplex … --publish HOST:PORT` patches the same state hook as `--capture-states` and streams each state as it is produced.
+- **Recorded files (dry runs).** `gr-publish HOST:PORT partner.wav --stereo --teacher … [--embeddings …] [--latency-s …]` streams recorded inputs in real time.
+- **DyaPlex.** No DyaPlex producer exists, because no DyaPlex code or export is in hand. It must call `Publisher.send("teacher", t, values8)`, or send `teacher_features` (see blockers).
+
+**Robot.** The robot is reached through `--robot network --robot-address HOST:PORT`, a JSON-lines bridge:
+1. The bridge sends `hello` with `embodiment`.
+2. It streams `state` (position rad, velocity rad/s for the 8 channels) at ≥ 20 Hz.
+3. G sends a `target` every 50 ms, and `hold` on stop.
+
+`NetworkRobot` refuses state older than 100 ms. If feedback is lost, the loop sends `hold`, cuts the session at the last complete frame and records `aborted`. A network robot also requires `--calibration`. Sessions are labeled `live_physical_robot` only when the bridge declares `embodiment: physical`.
+
+`gr-replay --robot network` plays one prepared stream on the bridged robot at wall-clock rate. This is how full and restricted sessions get identical conversational inputs.
+
+The VERA proposal places a vendor servo driver behind this adapter, but the vendor, protocol and head do not exist yet, so the bridge itself is not written. Instead:
+- `tests/test_gr.py::FakeBridge` exercises the protocol, including feedback loss.
+- MuJoCo (`simulate.MujocoRobot`) and the kinematic adapter run in-process.
+
+`gr-live` without `--listen` still rehearses from recorded files (`live_rehearsal_from_files`).
 
 ## Data collection plan
 
@@ -106,11 +131,15 @@ A hardware adapter must implement `state()` (encoder position in rad and velocit
 
 ### Rater protocol (pages 3–4)
 
-1. Run `gr-rating-packet manifest.json --out packet --context-s 3`. Each clip shows 3 s of conversation (audio and video) before the 500 ms chunk plus 0.5 s after it. Codes are random, and clip order is shuffled. Raters receive `clips/`, `labels.txt` and `rating-sheet.csv` only. `key.json` (trial id, condition, profile) stays with the experimenter.
-2. Raters never see the intended label, the model or policy, or the profile name.
+1. Run `gr-rating-packet manifest.json --out packet --context-s 3`.
+   - Each clip shows 3 s of conversation (audio and video) before the 500 ms chunk plus 0.5 s after it. Clips are cut only from the **text-free rating render** (`rating-source.mp4`), never from the labeled presentation video, which shows the policy, profile and R overlay. Container metadata is stripped.
+   - For a physical robot, attach a camera recording with `gr-trial --all --rating-video camera.mp4`. It must use the session clock and contain no on-screen text.
+   - The command refuses to run if any trial lacks a rating video.
+   - Codes are random, and clip order is shuffled. Raters receive `packet/` (`clips/`, `labels.txt`, `rating-sheet.csv`) only. The key (trial id, condition, profile) is written outside it, to `packet-key.json`.
+2. Raters never see the intended label, the model or policy, the profile name or R's predictions. They see only the robot's motion and the conversation.
 3. Instruction: "After the highlighted moment, what did the robot communicate to the speaker?" Choose exactly one label: `neutral_ack` (calm "I hear you"), `enthusiastic_ack` (eager agreement or interest), or `unclear` (no clear message or not a gesture). Notes are optional.
 4. Collect at least 5 independent raters per clip, each rating each clip at most once. Raters must not discuss clips. Use different raters for training data and for the held-out evaluation.
-5. Merge with `gr-votes manifest.json --key packet/key.json sheets/*.csv --out rated.json`. Intent stays in `intent`, written by the experimenter from the conversation design or teleop instruction. Votes go in `votes`.
+5. Merge with `gr-votes manifest.json --key packet-key.json sheets/*.csv --out rated.json`. Intent stays in `intent`, written by the experimenter from the conversation design or teleop instruction. Votes go in `votes`, marked `vote_source: observer_rating_sheets`. Trials that already hold votes from any other source are refused.
 
 Example inputs: `examples/manifest.example.json`, `examples/intents.example.csv`, `examples/rating-responses.example.csv`.
 
@@ -154,7 +183,15 @@ The report includes:
 - R's mean P(intent) on the recorded motion
 - per-session joint-limit compliance, tracking error, smoothness at and inside boundaries, inference timing
 
-`evidence` is `human_observer_votes` only when the manifest is not marked synthetic. **Acceptance check:** with neck pitch locked, refined G's intended-vote share beats projected DyaPlex on the same contexts, without a higher unclear rate, and approaches the full-capability reference.
+**Evidence tiers.** Every condition is reported per tier, and tiers are never pooled:
+- `unrated`
+- `synthetic_votes`: fixtures, hand-entered counts, or a manifest marked synthetic
+- `human_votes_on_simulated_motion`
+- `human_votes_on_robot_motion`
+
+`human_observer_evidence` is true only for votes that came through rating sheets. `human_evidence_on_physical_robot` additionally requires motion recorded from a bridge that declared `embodiment: physical`. Each condition also states its `teacher` (scripted/synthetic vs. unverified export). R scores are tagged `model_proxy_not_human`. `gr-train` records the same tiers in `evaluation.json` and prints a notice when no human votes exist.
+
+**Acceptance check:** with neck pitch locked, refined G's intended-vote share beats projected DyaPlex on the same contexts, without a higher unclear rate, and approaches the full-capability reference.
 
 ## Results so far (synthetic and simulator only)
 
@@ -173,7 +210,15 @@ Across all held-out trials, imitation-only G reached 0.773, and its demonstratio
 - 0.59 for G with neck pitch locked
 - 0.62 for G with the full face
 
-All replays and the `gr-live` rehearsal (50 ms simulated audio latency) kept commands inside position and speed limits, had zero self-contact and finite state, and averaged 0.4–0.9 ms G inference per chunk on CPU. The demo runs, packaged trials (153 chunks), manifest and blinded rating packet are under `runs/gr-v2` and `data/gr-v2`. **No one has rated them.**
+All replays and the `gr-live` rehearsal (50 ms simulated audio latency) kept commands inside position and speed limits, had zero self-contact and finite state, and averaged 0.4–0.9 ms G inference per chunk on CPU.
+
+**Live-path dry run** (`runs/gr-v3/live-listen-fixed`; MuJoCo; same audio and scripted teacher). `gr-live --listen --wait-for-producers 1` was fed by `gr-publish` in real time with 40 ms delivery delay:
+- 521/521 teacher frames were accepted and 0 rejected. No chunk lacked teacher motion after cold start.
+- Boundaries were at most 10.1 ms late. The worst single frame was 82 ms late, while MuJoCo was rendering video.
+- G inference averaged 0.52 ms per chunk.
+- R's mean P(intent) on the 8 gesture chunks was 0.38, against 0.59 for the zero-latency replay. Delivery delay shifts which frames fall in each 500 ms window, and that should be measured with people.
+
+Paired packets for projected@fixed-neck, live G@fixed-neck and G@full (153 clips) are under `runs/gr-v3/packet`, with the key in `runs/gr-v3/packet-key.json`. `gr-evaluate` reports all 153 as `unrated`, with `human_observer_evidence: false`. **No one has rated them.**
 
 ## PersonaPlex states
 
@@ -189,17 +234,20 @@ python -m speech_ai gr-prepare partner.wav --agent runs/real-personaplex/agent.w
 
 G and R must be trained on streams with the same context width (8 + d + 1 with states, 8 without).
 
-## Open gaps: exact inputs and commands
+## What is blocked, and on what
 
-| Needed | Consumed by |
-| --- | --- |
-| Real DyaPlex output for recorded conversations in the teacher format above (or decoded features + paired reference motion for ≥ 3 speaker groups) | `gr-fit-map pairs.json --out calibration.npz`, then `gr-prepare … --teacher [--teacher-map]` |
-| A GPU host with PersonaPlex 7B and the license accepted | `personaplex … --capture-states`, then `gr-prepare --embeddings` |
-| A robot `RobotInterface` adapter plus a measured calibration JSON for the physical head | `gr-live … --calibration calib.json` (add the adapter to `run_robot`) |
-| Clock sync event and per-device offsets; arrival logging on the robot computer | `--teacher-offset-s`, `--states-offset-s`, `arrival_s` |
-| Paired real-conversation sessions (full + restricted) with participant groups | `gr-live`/`gr-replay` → `gr-trial --all` → `gr-manifest --intents` |
-| ≥ 5 independent observers per clip (separate pools for training and held-out evaluation) | `gr-rating-packet` → `gr-votes` → `gr-train` / `gr-evaluate` |
-| Optional approved teleop demonstrations | `gr-train --imitation-only` |
+Synthetic and simulator results above stay labeled as such. No real-data, hardware or human result exists. Each blocker, with what unblocks it and the command that takes over:
+
+| Gap | Blocked on | Then run |
+| --- | --- | --- |
+| Real DyaPlex motion | No DyaPlex code, export or output format in the repo or from the team. The format cannot be invented. | The DyaPlex process sends `teacher` (or `teacher_features` plus `gr-fit-map` on ≥ 3 speaker groups of paired reference motion) to `gr-live --listen`. For offline use: `gr-prepare --teacher`. |
+| Real PersonaPlex states | PersonaPlex 7B needs a CUDA GPU or a host with far more than 16 GB memory, plus NVIDIA license acceptance. The live server-mode hook is unverified: `--publish` patches the offline runner's state hook. | `personaplex partner.wav --python <env> --capture-states --publish HOST:PORT`. Record `feature_width` and timing in `stream.json`. |
+| Physical robot | The head is not built. No vendor servo driver or protocol has been chosen. | Hardware team writes the JSON-lines bridge (`gr_link.py` docstring) and measures `calibration.json`. Then run `gr-live --listen … --robot network --robot-address … --calibration …`. |
+| Clock sync across machines | Needs the real devices. | Record a shared sync event and set `--teacher-offset-s` and `--states-offset-s`. Check that `input_stats` shows no clock rejections. |
+| Paired real conversations | Needs the robot, participants and an approved protocol. | `gr-live` (or `gr-replay --robot network` on a recorded stream) once per profile with the same `--context-id` and `--group`, then `gr-trial --all --rating-video camera.mp4` and `gr-manifest --intents`. |
+| Human ratings | Needs recruited observers: ≥ 5 per clip, with separate pools for training R and for held-out evaluation. | `gr-rating-packet` → raters fill `rating-sheet.csv` → `gr-votes` → `gr-train` / `gr-evaluate`. |
+| Does G preserve meaning better than projected DyaPlex? | All of the above. | `gr-evaluate rated.json --r r.pt --sessions …`. Compare `human_votes_on_robot_motion` rows for G vs. projected under the same restricted profile, using the paired comparisons. |
+| Optional teleop demonstrations | A teleoperation rig. | `gr-train --imitation-only` |
 
 ## Local artifacts outside the G/R deliverable
 

@@ -15,7 +15,7 @@ def run_personaplex(args: argparse.Namespace) -> None:
     from .personaplex import run
 
     print(run(args.input, args.out, args.python, args.device, args.voice, args.prompt,
-              args.seed, args.cpu_offload, args.capture_states))
+              args.seed, args.cpu_offload, args.capture_states, args.publish))
 
 
 def main() -> None:
@@ -37,6 +37,7 @@ def main() -> None:
     model.add_argument("--seed", type=int, default=42424242)
     model.add_argument("--cpu-offload", action="store_true")
     model.add_argument("--capture-states", action="store_true", help="save timestamped states.npz for gr-prepare")
+    model.add_argument("--publish", help="host:port of gr-live --listen; stream states as they are produced")
     model.set_defaults(run=run_personaplex)
 
     from .gr_cli import add_commands

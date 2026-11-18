@@ -18,6 +18,9 @@ from .audio import FEATURE_NAMES, FRAME_S, normalized
 from .gr_data import (STATES_MAX_AGE_S, TEACHER_MAX_AGE_S, TimedSource, align, file_digest,
                       load_stream, window_at)
 from .gr_model import CHANNELS, SCALE_RAD, STEPS, capability, constrain_motion, normalized_limits
+
+# Live audio frames come from another process with scheduling jitter; allow two frames of age.
+AUDIO_MAX_AGE_S = 0.1
 from .gr_train import load_models
 
 
@@ -98,6 +101,9 @@ class LiveInputs:
         self.time_s = np.round(np.arange(1, frames + 1) * FRAME_S, 6)
         self.state_dim = state_dim
         self.buffers = {"teacher": [], "audio": [], "states": []}
+        self.widths = {"teacher": len(CHANNELS), "audio": len(FEATURE_NAMES), "states": state_dim}
+        import threading
+        self.lock = threading.Lock()
         # What G actually saw, per frame; written as the session's stream.npz.
         self.seen_human = np.zeros((frames, len(CHANNELS)), dtype=np.float32)
         self.seen_valid = np.zeros(frames, dtype=np.float32)
@@ -105,15 +111,22 @@ class LiveInputs:
         self.seen_context = np.zeros((frames, width), dtype=np.float32)
 
     def push(self, name: str, time_s: float, arrival_s: float, values: np.ndarray, valid: bool = True) -> None:
-        buffer = self.buffers[name]
-        if buffer and (time_s <= buffer[-1][0] or arrival_s < buffer[-1][1]):
-            raise ValueError(f"{name}: samples must arrive in timestamp order")
-        if arrival_s < time_s - 1e-9:
-            raise ValueError(f"{name}: a sample cannot arrive before its timestamp")
-        buffer.append((time_s, arrival_s, np.asarray(values, dtype=np.float32), bool(valid)))
+        values = np.asarray(values, dtype=np.float32)
+        if name not in self.buffers or not self.widths[name]:
+            raise ValueError(f"{name}: not an input of this session")
+        if values.shape != (self.widths[name],) or not np.isfinite(values).all():
+            raise ValueError(f"{name}: expected {self.widths[name]} finite values")
+        with self.lock:
+            buffer = self.buffers[name]
+            if buffer and (time_s <= buffer[-1][0] or arrival_s < buffer[-1][1]):
+                raise ValueError(f"{name}: samples must arrive in timestamp order")
+            if arrival_s < time_s - 1e-9:
+                raise ValueError(f"{name}: a sample cannot arrive before its timestamp")
+            buffer.append((time_s, arrival_s, values, bool(valid)))
 
     def _source(self, name: str, width: int) -> TimedSource | None:
-        rows = self.buffers[name]
+        with self.lock:
+            rows = list(self.buffers[name])
         if not rows:
             return None
         return TimedSource(np.array([r[0] for r in rows]), np.array([r[1] for r in rows]),
@@ -136,7 +149,7 @@ class LiveInputs:
         self.seen_human[frames], self.seen_valid[frames] = human * valid[:, None], valid
         if index:
             last = np.array([self.time_s[index - 1]])
-            audio, heard = self._aligned("audio", len(FEATURE_NAMES), last, boundary, FRAME_S)
+            audio, heard = self._aligned("audio", len(FEATURE_NAMES), last, boundary, AUDIO_MAX_AGE_S)
             context = [normalized(audio) * heard[:, None]]
             if self.state_dim:
                 states, available = self._aligned("states", self.state_dim, last, boundary, STATES_MAX_AGE_S)
@@ -145,10 +158,12 @@ class LiveInputs:
         stacked = np.column_stack([self.seen_human, self.seen_valid]).astype(np.float32)
         return window_at(stacked, self.seen_context, index)
 
-    def save_stream(self, path: Path) -> None:
+    def save_stream(self, path: Path, frames: int | None = None) -> None:
+        """What G actually saw, per frame, in the gr-prepare stream format."""
+        frames = self.frames if frames is None else frames
         with path.open("wb") as file:
-            np.savez_compressed(file, time_s=self.time_s, human=self.seen_human,
-                                human_valid=self.seen_valid, context=self.seen_context)
+            np.savez_compressed(file, time_s=self.time_s[:frames], human=self.seen_human[:frames],
+                                human_valid=self.seen_valid[:frames], context=self.seen_context[:frames])
 
 
 class FileFeed:
@@ -206,6 +221,7 @@ class Session:
         self.measured = np.zeros((frames, len(CHANNELS)), dtype=np.float32)
         self.commanded = np.zeros((frames, len(CHANNELS)), dtype=np.float32)
         self.chunks = []
+        self.aborted = None
 
     @torch.inference_mode()
     def plan(self, index: int, state: np.ndarray) -> np.ndarray:
@@ -227,6 +243,12 @@ class Session:
                             "context": context})
         return target[:count] * SCALE_RAD
 
+    def truncate(self, frames: int, reason: str) -> None:
+        self.aborted = {"at_frame": frames, "at_s": round(frames * FRAME_S, 3), "reason": reason}
+        self.frames = frames
+        self.measured, self.commanded = self.measured[:frames], self.commanded[:frames]
+        self.chunks = [chunk for chunk in self.chunks if round(chunk["start_s"] / FRAME_S) < frames]
+
     @torch.inference_mode()
     def score(self, completed_frames: int | None = None) -> None:
         """R scores the motion the robot actually reached, once each chunk is complete."""
@@ -246,23 +268,44 @@ class Session:
             chunk["r_probabilities_on_realized_motion"] = dict(zip(self.labels, logits[0].softmax(0).tolist()))
 
 
+class RobotFeedbackLost(RuntimeError):
+    """Measured state stopped arriving; the loop must not keep planning blind."""
+
+
 def run_session(session: Session, robot: RobotInterface, feed: FileFeed | None = None,
-                on_frame=None) -> None:
+                on_frame=None, pacer=None) -> None:
+    """Plan at each 500 ms boundary from measured state; command and measure at 20 Hz.
+
+    With a ``pacer`` the loop runs on the wall clock (live). If the robot stops
+    reporting state, the robot is told to hold, and the session is cut at the last
+    complete frame and marked aborted.
+    """
     target = None
-    for index in range(session.frames):
-        boundary = index * FRAME_S
-        if feed is not None:
-            feed.deliver(boundary)
-        if index % STEPS == 0:
-            session.score(index)
-            anchor = index
-            target = session.plan(index, robot.state())
-        session.commanded[index] = target[index - anchor]
-        robot.command(target[index - anchor])
-        robot.advance(FRAME_S)
-        session.measured[index] = robot.state()[0]
-        if on_frame is not None:
-            on_frame(index, session)
+    index = 0
+    try:
+        for index in range(session.frames):
+            boundary = index * FRAME_S
+            late = pacer.wait(boundary) if pacer is not None else 0.0
+            if feed is not None:
+                feed.deliver(boundary)
+            if index % STEPS == 0:
+                session.score(index)
+                anchor = index
+                target = session.plan(index, robot.state())
+                session.chunks[-1]["boundary_late_ms"] = round(late, 3)
+            session.commanded[index] = target[index - anchor]
+            robot.command(target[index - anchor])
+            robot.advance(FRAME_S)
+            if pacer is not None:
+                pacer.wait(boundary + FRAME_S)
+            session.measured[index] = robot.state()[0]
+            if on_frame is not None:
+                on_frame(index, session)
+        index = session.frames
+    except RobotFeedbackLost as error:
+        if hasattr(robot, "hold"):
+            robot.hold()
+        session.truncate(index, str(error))
     if feed is not None:
         feed.deliver(session.frames * FRAME_S)
     session.score()
@@ -295,6 +338,9 @@ def motion_metrics(session: Session) -> dict:
         "mean_sq_accel_inside_chunks": float((accel[inside] ** 2).mean()) if len(inside) else None,
         "mean_sq_accel_at_boundaries": float((accel[boundary] ** 2).mean()) if boundary else None,
         "inference_ms": {"mean": float(timings.mean()), "max": float(timings.max())},
+        "boundary_late_ms": ({"mean": float(np.mean(late)), "max": float(np.max(late))}
+                             if (late := [c["boundary_late_ms"] for c in session.chunks if "boundary_late_ms" in c])
+                             else None),
         "fallback_chunks": {kind: sum(c["fallback"] == kind for c in session.chunks)
                             for kind in ("cold_start", "no_teacher_motion")},
     }
@@ -304,7 +350,7 @@ def write_session(session: Session, output: Path, meta: dict) -> dict:
     output.mkdir(parents=True, exist_ok=True)
     metrics = motion_metrics(session)
     chunks = [{k: v for k, v in c.items() if k != "context"} for c in session.chunks]
-    meta = {**meta, "capabilities": dict(zip(CHANNELS, session.limits.tolist()))}
+    meta = {**meta, "capabilities": dict(zip(CHANNELS, session.limits.tolist())), "aborted": session.aborted}
     np.savez_compressed(output / "realized-motion.npz", time_s=np.round(np.arange(1, session.frames + 1) * FRAME_S, 6),
                         channels=np.array(CHANNELS), robot_rad=session.measured, commanded_rad=session.commanded,
                         initial_state_rad=np.array([c["initial_state_rad"] for c in session.chunks], dtype=np.float32),
@@ -336,8 +382,13 @@ def make_policy(generator: Path | None, observer: Path | None, policy: str):
 def replay(stream: Path, generator: Path | None, observer: Path | None, profile: str, output: Path,
            calibration: Path | None = None, policy: str = "g", video: Path | None = None,
            audio: Path | None = None, title: str | None = None, robot: str = "mujoco",
-           session_id: str | None = None, group: str | None = None) -> dict:
-    """Offline integration check: drive a robot adapter from a prepared stream."""
+           session_id: str | None = None, group: str | None = None, robot_address: str | None = None) -> dict:
+    """Drive a robot adapter from a prepared stream.
+
+    With MuJoCo or the kinematic adapter this is an offline integration check. With
+    ``robot="network"`` the same inputs play on a bridged robot at wall-clock rate,
+    which is how paired full/restricted trials share one conversation context.
+    """
     torch.set_num_threads(1)
     limits = capability(profile, json.loads(calibration.read_text()) if calibration else None)
     chosen, judge, labels, context_dim = make_policy(generator, observer, policy)
@@ -345,11 +396,21 @@ def replay(stream: Path, generator: Path | None, observer: Path | None, profile:
     if context_dim is not None and inputs.context.shape[1] != context_dim:
         raise ValueError(f"Stream context width {inputs.context.shape[1]} differs from training ({context_dim})")
     session = Session(chosen, inputs, len(inputs.time_s), limits, judge, labels)
+    with np.load(stream, allow_pickle=False) as data:
+        source = str(data["teacher_source"]) if "teacher_source" in data else "unrecorded"
+    rating_video = output / "rating-source.mp4" if video else None
     meta = {"session_id": session_id or output.name, "participant_group": group, "origin": "simulator_replay",
+            "teacher_source": source, "rating_video": str(rating_video) if rating_video else None,
             "context_id": stream.stem, "profile": profile if calibration is None else "custom",
             "policy": chosen.name, "g_sha256": chosen.digest, "stream": str(stream), "robot": robot,
             "synthetic_or_replay": True, "video": str(video) if video else None}
-    run_robot(session, robot, limits, output, video, audio, title or f"{chosen.name} / {profile}")
+    embodiment = run_robot(session, robot, limits, output, video, audio, title or f"{chosen.name} / {profile}",
+                           rating_video=rating_video, robot_address=robot_address)
+    if embodiment == "physical":
+        meta.update(origin="physical_robot_replay", synthetic_or_replay=False,
+                    rating_video=None, note="attach the camera recording with gr-trial --rating-video")
+    elif robot == "network":
+        meta["origin"] = "live_network_unknown_embodiment" if embodiment != "simulated" else "simulator_replay"
     report = write_session(session, output, meta)
     return report
 
@@ -367,7 +428,7 @@ def live(partner: Path, agent: Path | None, stereo: bool, teacher: Path, teacher
     processes and swaps the MuJoCo adapter for the robot's ``RobotInterface``.
     """
     from .audio import extract, load_tracks
-    from .gr_data import load_states, load_teacher
+    from .gr_data import load_states, load_teacher, teacher_source
 
     torch.set_num_threads(1)
     limits = capability(profile, json.loads(calibration.read_text()) if calibration else None)
@@ -385,12 +446,15 @@ def live(partner: Path, agent: Path | None, stereo: bool, teacher: Path, teacher
     if states is not None:
         sources["states"] = states
     session = Session(chosen, inputs, frames, limits, judge, labels)
-    run_robot(session, robot, limits, output, video, None, title or f"live {chosen.name} / {profile}",
-              FileFeed(inputs, sources))
+    rating_video = output / "rating-source.mp4" if video else None
+    track = conversation_audio(partner, agent, output) if video else None
+    run_robot(session, robot, limits, output, video, track, title or f"live {chosen.name} / {profile}",
+              FileFeed(inputs, sources), rating_video=rating_video)
     output.mkdir(parents=True, exist_ok=True)
     inputs.save_stream(output / "stream.npz")
     meta = {"session_id": session_id or output.name, "participant_group": group,
             "context_id": context_id or partner.stem, "origin": "live_rehearsal_from_files",
+            "teacher_source": teacher_source(teacher), "rating_video": str(rating_video) if rating_video else None,
             "profile": profile if calibration is None else "custom", "policy": chosen.name,
             "g_sha256": chosen.digest, "robot": robot, "audio_latency_s": audio_latency_s,
             "teacher": str(teacher), "personaplex": str(embeddings) if embeddings else None,
@@ -398,15 +462,41 @@ def live(partner: Path, agent: Path | None, stereo: bool, teacher: Path, teacher
     return write_session(session, output, meta)
 
 
-def run_robot(session: Session, robot: str, limits: np.ndarray, output: Path, video, audio, title, feed=None):
+def conversation_audio(partner: Path, agent: Path | None, output: Path) -> Path:
+    """Both sides of the conversation in one track, so rating clips carry the context."""
+    if agent is None:
+        return partner
+    import subprocess
+
+    output.mkdir(parents=True, exist_ok=True)
+    mixed = output / "conversation.wav"
+    subprocess.run(["ffmpeg", "-nostdin", "-v", "error", "-y", "-i", str(partner), "-i", str(agent),
+                    "-filter_complex", "amix=inputs=2:normalize=0", str(mixed)], check=True)
+    return mixed
+
+
+def run_robot(session: Session, robot: str, limits: np.ndarray, output: Path, video, audio, title, feed=None,
+              rating_video: Path | None = None, robot_address: str | None = None) -> str:
+    """Run the session on the chosen adapter and return the embodiment it reported."""
+    if robot in ("kinematic", "network") and video is not None:
+        raise ValueError("Video requires the MuJoCo adapter; film a physical robot with a camera")
     if robot == "kinematic":
-        if video is not None:
-            raise ValueError("Video requires the MuJoCo adapter")
         run_session(session, KinematicRobot(limits), feed)
-        return
+        return "simulated"
+    if robot == "network":
+        from .gr_link import NetworkRobot, Pacer, SessionClock, parse_address
+
+        if robot_address is None:
+            raise ValueError("--robot network needs --robot-address HOST:PORT")
+        adapter = NetworkRobot(parse_address(robot_address))
+        try:
+            run_session(session, adapter, feed, pacer=Pacer(SessionClock()))
+        finally:
+            adapter.close()
+        return adapter.embodiment
     from .simulate import MujocoRobot
 
-    adapter = MujocoRobot(limits, video=video, audio=audio, title=title, output=output)
+    adapter = MujocoRobot(limits, video=video, audio=audio, title=title, output=output, rating_video=rating_video)
     try:
         run_session(session, adapter, feed, on_frame=adapter.annotate)
     finally:
@@ -415,3 +505,4 @@ def run_robot(session: Session, robot: str, limits: np.ndarray, output: Path, vi
     (output / "simulation.json").write_text(json.dumps(report, indent=2, allow_nan=False) + "\n")
     if not report["finite_state"] or report["self_contact_steps"]:
         raise RuntimeError(f"Simulation unstable or self-contact: {report}")
+    return "simulated"
