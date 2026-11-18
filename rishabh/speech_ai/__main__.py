@@ -182,6 +182,9 @@ def main() -> None:
     audit.add_argument("--candidates", choices=("pause", "cadence"), default="pause")
     audit.set_defaults(run=run_audit)
 
+    from .gr_cli import add_commands as add_gr_commands
+    add_gr_commands(commands)
+
     args = parser.parse_args()
     args.run(args)
 

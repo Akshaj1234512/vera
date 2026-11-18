@@ -1,14 +1,13 @@
 # VERA Speech AI
 
-Turns paired speech audio into timestamped nod, gaze, jaw, and yield cues. Run the same audio with different actuator capabilities and replay the result on the existing VERA simulator.
+G generates 500 ms of robot facial motion from DyaPlex motion, PersonaPlex features, and the robot’s capabilities and current state. R predicts what observers interpret from the resulting motion. R also guides G during training.
 
-From this folder:
+Run the synthetic verification from this folder.
 
 ```sh
 python -m pip install -r requirements.txt
-python -m speech_ai demo
+python -m speech_ai gr-fixture
+python -m speech_ai gr-train data/gr-synthetic/manifest.json
 ```
 
-Open `runs/demo/linked-eyes/timeline.png` for the first replay. The workbench also compares rules, linear, and GRU cue selectors on held-out speaker groups.
-
-[Simulation replay, evaluation results, and run commands](EXPERIMENTS.md)
+[G/R inputs, MuJoCo replay, and experiment results](EXPERIMENTS.md)

@@ -1,5 +1,39 @@
 # Speech AI experiments
 
+## G/R facial motion
+
+**G** is a two-layer causal transformer. It takes ten 20 Hz frames of human motion, the latest PersonaPlex features, the robot’s capability descriptor, and its current joint position and velocity. It predicts the next ten frames of robot motion across eight channels. The capability descriptor masks locked joints and bounds position and slew. The optional `--residual` mode learns a correction to the projected DyaPlex trajectory.
+
+**R** takes realized robot motion, capabilities, and the same conversational features. It learns a probability distribution over interpretations from observer vote counts. Training then freezes R and optimizes G for intended-interpretation likelihood and temporal smoothness. When teleoperation demonstrations are available, G also learns to reproduce them. The observer receives the conversational context and motion without the intended label.
+
+### Run with synthetic fixtures
+
+From `rishabh/`, run the README commands. Install `mujoco` for replay. The two commands below apply G to the same input stream with two capability settings. G uses measured simulator state at each chunk boundary. R scores the positions the simulator actually reached, which are also saved for annotation.
+
+```sh
+for profile in full fixed-neck-pitch; do
+  python -m speech_ai gr-replay data/gr-synthetic/replay.npz \
+    --g runs/gr-training/g.pt --r runs/gr-training/r.pt \
+    --profile "$profile" --out "runs/gr-$profile" \
+    --video "runs/gr-$profile/replay.mp4"
+done
+```
+
+The synthetic run checks the pipeline using programmatically generated motions and ratings. The evaluation JSON separates agreement with held-out votes on recorded clips from R’s score on newly generated trajectories. R’s score on G’s output is a proxy for the objective. Human judgments are needed to measure whether the substitution actually preserves meaning.
+
+On the held-out synthetic trials, refinement raised R’s mean probability of the intended interpretation from 0.886 to 0.934. The same replay yielded the same predicted interpretations across the two capability settings. The locked head kept neck pitch at zero and used gaze and brow motion. Both replays finished without simulated self-contact.
+
+### Prepare real trials
+
+Use synchronized DyaPlex motion, PersonaPlex state exports, and realized robot motion on the same recording clock. The eight channels in both motion arrays are `neck_yaw`, `neck_pitch`, `jaw`, `eye_yaw`, `eyelid_l`, `eyelid_r`, `brow_l`, and `brow_r`. The simulator maps `eye_yaw` to both eyes.
+
+1. Run `gr-prepare partner.wav --teacher dyaplex.npz --embeddings states.npz --out stream.npz` through `python -m speech_ai`. The teacher NPZ accepts `time_s`, `channels`, and normalized `human` with shape `[frames, 8]`. For a decoded DyaPlex feature export with `time_s` and `features`, supply `--teacher-map calibration.npz` with fitted `weights` of shape `[features, 8]` and `bias` of shape `[8]`. PersonaPlex states come from `personaplex --capture-states`. Alignment uses only features observed by the start of the generated chunk.
+2. Record robot motion and have observers rate what each chunk communicates in context. Include recognizable, ambiguous, and wrong-for-context examples. Use `python -m speech_ai gr-trial stream.npz realized-motion.npz --start-s 1.0 --out trial.npz` to pair a recorded chunk with its inputs. Recordings use the 20 Hz `time_s` clock, `channels`, `robot_rad [frames, 8]`, `chunk_start_s`, and `initial_state_rad [chunks, 2, 8]` for position and velocity. The first half-second of replay gathers history.
+3. Create a manifest with an ordered `labels` list and `trials` list. Each row has `id`, `group` for a complete interaction or participant split, `origin`, `file` relative to the manifest, and `profile`. A row can include its intended label in `intent`, observed vote counts such as `"votes": {"neutral_ack": 7, "unclear": 2}`, and `"demonstration": true` for an approved teleoperation trajectory. For calibrated hardware, supply a `capabilities` object keyed by channel with `[enabled, min_rad, max_rad, max_rad_per_s]` values. The three synthetic label names are examples for the initial study.
+4. Run `gr-train` on the reviewed manifest. If only teleoperation examples are ready, use `--imitation-only` to obtain `g-imitation.pt` and replay it without an R checkpoint to collect ratings. The combined run writes `g.pt`, `r.pt`, and `evaluation.json`. It also saves `g-imitation.pt` when it pretrains on demonstrations.
+
+The commands above train G and R with synthetic inputs. The real DyaPlex channel calibration, paired recordings, and observer votes still need to be collected for evaluation.
+
 ## Speech cue replay in MuJoCo
 
 The same published PersonaPlex audio plays under two MuJoCo heads. At **1.80 s** the left head nods and the right head casts a brief gaze cue with nodding disabled. At **9.40 s** the two audio streams overlap. Agent audio ceases at **9.70 s** and the visible yield cue starts when the detector confirms the silence at **9.85 s**. Both simulations had finite state and zero self-contact steps. The gaze cue is a candidate substitute for an observer study. [NVIDIA audio examples](https://research.nvidia.com/labs/adlr/personaplex/#examples)

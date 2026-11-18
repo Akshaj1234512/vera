@@ -5,11 +5,15 @@ import json
 from pathlib import Path
 import subprocess
 import sys
+from typing import TYPE_CHECKING
 from tempfile import TemporaryDirectory
 
 import numpy as np
 
 from .cues import PROFILES
+
+if TYPE_CHECKING:
+    from .gr_runtime import MotionPlanner
 
 JOINT_RATES = {"jaw": 2.0, "neck_pitch": 1.5, "eye_yaw_l": 2.3, "eye_yaw_r": 2.3}
 CUE_TARGETS = {
@@ -46,7 +50,8 @@ def overlay(pixels: np.ndarray, timeline: dict, now: float, frame_index: int, ev
     return image.tobytes()
 
 
-def replay(timeline_path: Path, output: Path, video: Path | None, audio: Path | None) -> dict:
+def replay(timeline_path: Path, output: Path, video: Path | None, audio: Path | None,
+           planner: "MotionPlanner | None" = None) -> dict:
     import mujoco
 
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
@@ -68,32 +73,42 @@ def replay(timeline_path: Path, output: Path, video: Path | None, audio: Path | 
     data = mujoco.MjData(model)
     controller = HeadController(model, data)
     mujoco.mj_resetDataKeyframe(model, data, 0)
-    allowed = PROFILES[timeline["profile"]]
     score = Choreography([joint for joint in JOINT_RATES if joint != "jaw"])
-    for event in timeline["events"]:
-        cue = event["cue"]
-        onset, duration = float(event["onset_s"]), float(event["duration_s"])
-        if not np.isfinite([onset, duration]).all() or onset < 0 or duration <= 0:
-            raise ValueError(f"Invalid cue timing: {event}")
-        if cue == "settle":
-            score.move(duration, at=onset, **dict.fromkeys(score.joints, 0.0))
-            continue
-        if (cue == "nod" and not allowed.nod) or (cue == "gaze" and not allowed.eyes):
-            raise ValueError(f"{cue} is unavailable in {timeline['profile']}")
-        joints, key, maximum = CUE_TARGETS[cue]
-        level = float(event["target"][key])
-        if not np.isfinite(level) or abs(level) > 1:
-            raise ValueError(f"Cue target must be normalized: {event}")
-        outward = 0.38 * duration
-        home = 0.45 * duration
-        score.move(outward, at=onset, **dict.fromkeys(joints, maximum * level))
-        score.move(home, at=onset + duration - home, **dict.fromkeys(joints, 0.0))
+    if planner is None:
+        allowed = PROFILES[timeline["profile"]]
+        for event in timeline["events"]:
+            cue = event["cue"]
+            onset, duration = float(event["onset_s"]), float(event["duration_s"])
+            if not np.isfinite([onset, duration]).all() or onset < 0 or duration <= 0:
+                raise ValueError(f"Invalid cue timing: {event}")
+            if cue == "settle":
+                score.move(duration, at=onset, **dict.fromkeys(score.joints, 0.0))
+                continue
+            if (cue == "nod" and not allowed.nod) or (cue == "gaze" and not allowed.eyes):
+                raise ValueError(f"{cue} is unavailable in {timeline['profile']}")
+            joints, key, maximum = CUE_TARGETS[cue]
+            level = float(event["target"][key])
+            if not np.isfinite(level) or abs(level) > 1:
+                raise ValueError(f"Cue target must be normalized: {event}")
+            outward = 0.38 * duration
+            home = 0.45 * duration
+            score.move(outward, at=onset, **dict.fromkeys(joints, maximum * level))
+            score.move(home, at=onset + duration - home, **dict.fromkeys(joints, 0.0))
 
     output.mkdir(parents=True, exist_ok=True)
     traces = output / "joints.csv"
-    joints = list(JOINT_RATES)
+    joint_rates = JOINT_RATES if planner is None else planner.rates
+    joints = list(joint_rates)
     controls = np.array([controller.ctrl_range(joint) for joint in joints]).T
-    rates = np.array(list(JOINT_RATES.values()))
+    rates = np.array(list(joint_rates.values()))
+    position_indices = [controller.jnt_qadr[joint] for joint in joints]
+    velocity_indices = [model.jnt_dofadr[model.actuator_trnid[controller.act_id[joint], 0]] for joint in joints]
+    if planner is not None:
+        for group, (_, lo, hi, _) in zip(planner.groups, planner.limits):
+            for joint in group:
+                lower, upper = controller.ctrl_range(joint)
+                if lo < lower - 1e-7 or hi > upper + 1e-7:
+                    raise ValueError(f"{joint}: calibration extends beyond the simulator limits")
     dt = model.opt.timestep
     current = np.array([controller.target(joint) for joint in joints])
     extrema = np.zeros(len(joints))
@@ -121,16 +136,20 @@ def replay(timeline_path: Path, output: Path, video: Path | None, audio: Path | 
                 ], stdin=subprocess.PIPE)
 
             period = 1 / FPS
-            for _ in range(int(np.ceil(duration / dt))):
+            for _ in range(int(np.ceil(duration / dt - 1e-9))):
                 now = float(data.time)
                 frame_index = int(np.searchsorted(timestamps, now + 1e-9, side="right")) - 1
-                targets = score.sample(now)
-                targets["jaw"] = 0.25 * aperture[frame_index] if frame_index >= 0 else 0.0
+                actual = data.qpos[position_indices]
+                if planner is None:
+                    targets = score.sample(now)
+                    targets["jaw"] = 0.25 * aperture[frame_index] if frame_index >= 0 else 0.0
+                else:
+                    targets = planner.targets(now, dict(zip(joints, actual)),
+                                              dict(zip(joints, data.qvel[velocity_indices])))
                 wanted = np.clip([targets[joint] for joint in joints], *controls)
                 change = np.clip(wanted - current, -rates * dt, rates * dt)
                 current += change
                 controller.set_many(dict(zip(joints, current)))
-                actual = np.asarray([controller.position(joint) for joint in joints])
                 extrema = np.maximum(extrema, np.abs(actual))
                 peak_rates = np.maximum(peak_rates, np.abs(change / dt))
                 peak_error = np.maximum(peak_error, np.abs(actual - current))
@@ -162,6 +181,9 @@ def replay(timeline_path: Path, output: Path, video: Path | None, audio: Path | 
                 subprocess.run(["ffmpeg", "-nostdin", "-v", "error", "-y", "-i", str(encoded), "-i", str(audio),
                                 "-map", "0:v:0", "-map", "1:a:0", "-c:v", "copy", "-c:a", "aac",
                                 "-movflags", "+faststart", "-shortest", str(video)], check=True)
+
+    if planner is not None:
+        planner.finish(dict(zip(joints, data.qpos[position_indices])), output)
 
     report = {
         "duration_s": duration, "model": MODEL_PATH.name, "profile": timeline["profile"],
