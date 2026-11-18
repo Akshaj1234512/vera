@@ -1,15 +1,16 @@
-"""Extract aligned features using only samples available at each frame end."""
+"""Causal audio-encoder features on the 20 Hz G/R clock.
 
-from dataclasses import dataclass, replace
+Each frame summarizes only the samples that ended by that frame's timestamp, so
+features at a chunk boundary never include audio from the chunk being planned.
+"""
+
+from dataclasses import dataclass
 from pathlib import Path
 import wave
 
 import numpy as np
 
 FRAME_S = 0.05
-HISTORY_FRAMES = 16
-PAUSE_FRAMES = 3
-MIN_SPEECH_FRAMES = 7
 FEATURE_NAMES = ("partner_db", "partner_pitch", "partner_voiced", "partner_active",
                  "agent_db", "agent_pitch", "agent_voiced", "agent_active")
 
@@ -18,8 +19,6 @@ FEATURE_NAMES = ("partner_db", "partner_pitch", "partner_voiced", "partner_activ
 class Features:
     time_s: np.ndarray
     values: np.ndarray
-    candidates: np.ndarray
-    speech_end_s: np.ndarray
 
 
 def read_wav(path: Path) -> tuple[np.ndarray, int]:
@@ -91,10 +90,11 @@ def track_features(samples: np.ndarray, rate: int, frames: int, threshold_db: fl
 
 def extract(partner: tuple[np.ndarray, int], agent: tuple[np.ndarray, int] | None = None,
             threshold_db: float = -40) -> Features:
+    """Frame i covers [i * 50 ms, (i + 1) * 50 ms) and is stamped at its end."""
     partner_samples, partner_rate = partner
     recordings = [partner] if agent is None else [partner, agent]
     duration = max(len(samples) / rate for samples, rate in recordings)
-    frames = int(np.ceil(duration / FRAME_S))
+    frames = int(np.ceil(duration / FRAME_S - 1e-9))
     if frames == 0:
         raise ValueError("Need at least one audio frame")
     time_s = np.round(np.arange(1, frames + 1) * FRAME_S, 6)
@@ -104,38 +104,15 @@ def extract(partner: tuple[np.ndarray, int], agent: tuple[np.ndarray, int] | Non
         agent_values[:, 0] = -80
     else:
         agent_values = track_features(*agent, frames, threshold_db)
-
-    candidates, starts = [], []
-    speech_frames = silence_frames = 0
-    for index, active in enumerate(partner_values[:, 3]):
-        if active:
-            if silence_frames >= PAUSE_FRAMES:
-                speech_frames = 0
-            speech_frames += 1
-            silence_frames = 0
-            continue
-        silence_frames += 1
-        if silence_frames == PAUSE_FRAMES and speech_frames >= MIN_SPEECH_FRAMES:
-            candidates.append(index)
-            starts.append(round(time_s[index] - PAUSE_FRAMES * FRAME_S, 6))
-
-    return Features(time_s, np.concatenate([partner_values, agent_values], axis=1),
-                    np.asarray(candidates, dtype=np.int64), np.asarray(starts))
+    return Features(time_s, np.concatenate([partner_values, agent_values], axis=1))
 
 
-def propose(features: Features, mode: str) -> Features:
-    """Offer cues at either detected pauses or a regular cadence in listening contexts."""
-    if mode == "pause":
-        return features
-    if mode != "cadence":
-        raise ValueError(f"Unknown candidate mode: {mode}")
-    indices = np.arange(len(features.time_s))
-    active = features.values[:, 3].astype(bool)
-    recent = np.maximum.accumulate(np.where(active, indices, -10_000))
-    # Sample at 10 Hz while the partner is speaking or was heard in the last second.
-    proposals = indices[(indices % 2 == 1) & (indices - recent <= 20)]
-    ends = np.where(active[proposals], np.nan, features.time_s[recent[proposals]])
-    return replace(features, candidates=proposals, speech_end_s=ends)
+def normalized(values: np.ndarray) -> np.ndarray:
+    """Map dBFS to [0, 1] above -80 dB and pitch to a fraction of 420 Hz."""
+    result = values.astype(np.float32).copy()
+    result[:, [0, 4]] = np.clip((result[:, [0, 4]] + 80) / 80, 0, 1)
+    result[:, [1, 5]] /= 420
+    return result
 
 
 def load_tracks(partner_path: Path, agent_path: Path | None = None,
@@ -150,32 +127,3 @@ def load_tracks(partner_path: Path, agent_path: Path | None = None,
         return partner, None
     samples, rate = read_wav(agent_path)
     return partner, (samples.mean(axis=1), rate)
-
-
-def context_windows(features: Features) -> np.ndarray:
-    # Include the current frame and left-pad the start of a conversation as silence.
-    values = features.values.copy()
-    values[:, [0, 4]] = (values[:, [0, 4]] + 80) / 80
-    values[:, [1, 5]] /= 420
-    padded = np.pad(values, ((HISTORY_FRAMES - 1, 0), (0, 0)))
-    offsets = np.arange(HISTORY_FRAMES)
-    return padded[features.candidates[:, None] + offsets]
-
-
-def aligned_embeddings(path: Path, cue_times: np.ndarray) -> np.ndarray:
-    """Align pre-extracted causal hidden states. Reserve a column for availability."""
-    with np.load(path, allow_pickle=False) as data:
-        timestamps = np.asarray(data["time_s"], dtype=float)
-        values = np.asarray(data["features"], dtype=np.float32)
-    if (timestamps.ndim != 1 or values.ndim != 2 or len(timestamps) != len(values)
-            or values.shape[1] == 0 or not np.isfinite(timestamps).all()
-            or not np.isfinite(values).all() or np.any(timestamps < 0)
-            or np.any(np.diff(timestamps) <= 0)):
-        raise ValueError(f"{path}: expected sorted unique timestamps and finite [frames, dim] embeddings")
-    aligned = np.zeros((len(cue_times), values.shape[1] + 1), dtype=np.float32)
-    previous = np.searchsorted(timestamps, cue_times, side="right") - 1
-    valid = previous >= 0
-    valid[valid] = cue_times[valid] - timestamps[previous[valid]] <= 0.25
-    aligned[valid, :-1] = values[previous[valid]]
-    aligned[valid, -1] = 1
-    return aligned

@@ -9,9 +9,8 @@ import torch
 import torch.nn.functional as F
 
 from .audio import FRAME_S
-from .dataset import split_groups
-from .gr_data import Trial, load_manifest
-from .gr_model import CHANNELS, SCALE_RAD, Generator, Observer, constrain_motion
+from .gr_data import Trial, file_digest, load_manifest, split_groups
+from .gr_model import CHANNELS, PROFILES, SCALE_RAD, Generator, Observer, capability, constrain_motion
 
 CHECKPOINT_VERSION = 1
 
@@ -37,6 +36,11 @@ def imitation_error(motion: torch.Tensor, data: dict[str, torch.Tensor], *, abso
 
 
 def smoothness(motion: torch.Tensor, data: dict[str, torch.Tensor]) -> torch.Tensor:
+    """Mean squared change in per-step velocity, including the step across the chunk boundary.
+
+    The measured velocity at the boundary anchors the first difference, so a chunk
+    that starts with an abrupt reversal is penalized as much as one inside a chunk.
+    """
     first_position = data["state"][:, :1, :]
     velocity = torch.diff(torch.cat([first_position, motion], dim=1), dim=1)
     previous_step = data["state"][:, 1:2, :] * FRAME_S
@@ -101,16 +105,18 @@ def generator_result(motion: torch.Tensor, observer: Observer, data: dict[str, t
         "observer_mean_intended_probability": float(probabilities.mean()) if len(intended) else None,
         "observer_intended_top1": (float((logits[labeled].argmax(dim=1) == intended).float().mean())
                                     if len(intended) else None),
+        "smoothness": float(smoothness(motion, data)),
         "trials": len(motion),
     }
 
 
 def train(manifest: Path, output: Path, seed: int, epochs: int, refine_epochs: int,
           meaning_weight: float, smooth_weight: float, *, residual: bool = False,
-          imitation_only: bool = False) -> dict:
+          imitation_only: bool = False, demo_weight: float = 1.0) -> dict:
     if (epochs < 1 or refine_epochs < 1 or not math.isfinite(meaning_weight) or meaning_weight <= 0
-            or not math.isfinite(smooth_weight) or smooth_weight < 0):
-        raise ValueError("Use positive training lengths and meaning weight and a nonnegative smoothness weight")
+            or not math.isfinite(smooth_weight) or smooth_weight < 0
+            or not math.isfinite(demo_weight) or demo_weight < 0):
+        raise ValueError("Use positive training lengths and meaning weight and nonnegative motion weights")
     torch.set_num_threads(1)
     torch.manual_seed(seed)
     labels, trials = load_manifest(manifest)
@@ -122,10 +128,20 @@ def train(manifest: Path, output: Path, seed: int, epochs: int, refine_epochs: i
     metadata = {"version": CHECKPOINT_VERSION, "channels": list(CHANNELS),
                 "context_dim": context_dim, "labels": labels, "origins": origins,
                 "residual": residual}
+    profiles = sorted({trial.profile for trial in trials})
     report = {
+        "data": {"manifest": str(manifest.resolve()), "sha256": file_digest(manifest),
+                 "synthetic": bool(json.loads(manifest.read_text()).get("synthetic", False)),
+                 "labels": labels, "trials": len(trials)},
         "origins": origins, "seed": seed, "epochs": epochs,
         "generator_mode": "residual" if residual else "direct",
-        "splits": {name: {"groups": sorted({trial.group for trial in rows}), "trials": len(rows)}
+        "loss_weights": {"demo": demo_weight, "meaning": meaning_weight, "temporal": smooth_weight},
+        "calibration": {profile: dict(zip(CHANNELS, capability(profile).tolist()))
+                        for profile in profiles if profile in PROFILES},
+        "custom_calibrations": [profile for profile in profiles if profile not in PROFILES],
+        "splits": {name: {"groups": sorted({trial.group for trial in rows}), "trials": len(rows),
+                          "rated_trials": sum(trial.raters > 0 for trial in rows),
+                          "observer_votes": sum(trial.raters for trial in rows)}
                    for name, rows in splits.items()},
     }
 
@@ -164,7 +180,7 @@ def train(manifest: Path, output: Path, seed: int, epochs: int, refine_epochs: i
         logits = observation(observer, motion, data)
         estimates = F.cross_entropy(logits, data["intent"], ignore_index=-1, reduction="none")
         meaning = estimates.sum() / named.sum().clamp_min(1)
-        return (imitation_error(motion, data) + smooth_weight * smoothness(motion, data)
+        return (demo_weight * imitation_error(motion, data) + smooth_weight * smoothness(motion, data)
                 + meaning_weight * meaning)
 
     refinement = subsets(splits, lambda trial: trial.demonstration or trial.intent >= 0, "G refinement")
@@ -185,6 +201,18 @@ def train(manifest: Path, output: Path, seed: int, epochs: int, refine_epochs: i
         if imitation is not None:
             report["trajectory_test"]["g_imitation"] = generator_result(generator_output(imitation, test),
                                                                          observer, test)
+        # The substitution question is per embodiment: compare policies under each profile.
+        profiles = [trial.profile for trial in splits["test"] if trial.intent >= 0]
+        by_profile = {}
+        for profile in sorted(set(profiles)):
+            ids = torch.tensor([k for k, name in enumerate(profiles) if name == profile])
+            subset = {key: values[ids] for key, values in test.items()}
+            by_profile[profile] = {
+                "direct": generator_result(constrain_motion(subset["human"][:, :, :-1], subset["limits"],
+                                                            subset["state"][:, 0]), observer, subset),
+                "g_refined": generator_result(generator_output(generator, subset), observer, subset),
+            }
+        report["trajectory_test_by_profile"] = by_profile
     models.update({"g": generator, "r": observer})
     write_results(output, report, metadata, models)
     return report

@@ -1,0 +1,20 @@
+{
+  "labels": ["unclear", "neutral_ack", "enthusiastic_ack"],
+  "synthetic": false,
+  "trials": [
+    {"id": "s01-p03-004000ms-full", "group": "participant-03", "origin": "lab_conversation_2026",
+     "file": "trials/s01-p03-full/s01-p03-004000ms.npz", "pair": "s01-p03-004000ms",
+     "condition": "g", "profile": "full", "start_s": 4.0,
+     "intent": "neutral_ack", "votes": {"neutral_ack": 6, "enthusiastic_ack": 1, "unclear": 1}},
+    {"id": "s01-p03-004000ms-fixed", "group": "participant-03", "origin": "lab_conversation_2026",
+     "file": "trials/s01-p03-fixed/s01-p03-004000ms.npz", "pair": "s01-p03-004000ms",
+     "condition": "g", "profile": "fixed-neck-pitch", "start_s": 4.0,
+     "intent": "neutral_ack", "votes": {"neutral_ack": 4, "unclear": 4}},
+    {"id": "s01-p03-004000ms-teleop", "group": "participant-03", "origin": "lab_teleoperation_2026",
+     "file": "trials/s01-p03-teleop/s01-p03-004000ms.npz", "pair": "s01-p03-004000ms",
+     "condition": "teleop", "intent": "neutral_ack", "demonstration": true,
+     "capabilities": {"neck_yaw": [1, -0.25, 0.25, 1.2], "neck_pitch": [0, 0, 0, 0], "jaw": [1, 0, 0.32, 2.0],
+                      "eye_yaw": [1, -0.38, 0.38, 2.3], "eyelid_l": [1, 0, 0.55, 5.0], "eyelid_r": [1, 0, 0.55, 5.0],
+                      "brow_l": [1, -0.015, 0.03, 0.24], "brow_r": [1, -0.015, 0.03, 0.24]}}
+  ]
+}

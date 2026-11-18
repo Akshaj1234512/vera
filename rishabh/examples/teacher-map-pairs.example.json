@@ -1,0 +1,5 @@
+[
+  {"id": "clip-01", "group": "speaker-A", "features": "dyaplex/clip-01-decoded.npz", "reference": "reference/clip-01-motion.npz"},
+  {"id": "clip-02", "group": "speaker-B", "features": "dyaplex/clip-02-decoded.npz", "reference": "reference/clip-02-motion.npz"},
+  {"id": "clip-03", "group": "speaker-C", "features": "dyaplex/clip-03-decoded.npz", "reference": "reference/clip-03-motion.npz"}
+]
