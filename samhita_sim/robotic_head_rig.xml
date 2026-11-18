@@ -1,0 +1,163 @@
+<mujoco model="robotic_human_head">
+  <compiler angle="radian" autolimits="true" meshdir="."/>
+  <option timestep="0.002" integrator="implicitfast" gravity="0 0 -9.81"/>
+  <visual>
+    <global offwidth="1280" offheight="960"/>
+    <quality shadowsize="2048"/>
+    <headlight ambient="0.38 0.40 0.44" diffuse="0.72 0.74 0.78" specular="0.55 0.58 0.62"/>
+  </visual>
+  <asset>
+    <texture name="sky" type="skybox" builtin="gradient" rgb1="0.38 0.45 0.55" rgb2="0.035 0.045 0.065" width="512" height="512"/>
+    <material name="shell" rgba="0.48 0.56 0.63 1" specular="0.78" shininess="0.72"/>
+    <material name="eye_white" rgba="0.90 0.94 0.96 1" specular="0.85" shininess="0.9"/>
+    <material name="iris" rgba="0.06 0.62 0.72 1" specular="0.9" shininess="0.95"/>
+    <material name="pupil" rgba="0.008 0.015 0.022 1" specular="0.95" shininess="1"/>
+    <material name="dark_trim" rgba="0.055 0.075 0.095 1" specular="0.72" shininess="0.8"/>
+    <skin name="head_skin" file="human_head_skin.skn" material="shell"/>
+  </asset>
+  <default>
+    <geom contype="0" conaffinity="0" density="250"/>
+    <joint damping="0.08" armature="0.001"/>
+    <default class="eye">
+      <joint range="-0.45 0.45" damping="0.002" armature="0.0001"/>
+      <position kp="0.12" ctrlrange="-0.45 0.45" forcelimited="true" forcerange="-0.3 0.3"/>
+    </default>
+  </default>
+  <worldbody>
+    <light pos="0.6 -0.7 1.4" dir="-0.3 0.4 -0.8" diffuse="0.95 0.95 0.98" castshadow="true"/>
+    <light pos="0.4 0.8 0.9" dir="-0.4 -0.6 -0.4" diffuse="0.34 0.42 0.52"/>
+    <geom name="floor" type="plane" pos="0 0 -0.015" size="2 2 0.05" rgba="0.11 0.13 0.17 1"/>
+    <geom name="pedestal" type="cylinder" pos="0 0 0.17" size="0.055 0.17" rgba="0.075 0.09 0.12 1" material="dark_trim"/>
+    <body name="head" pos="0 0 0.34">
+      <inertial pos="0 0 0.12" mass="4.0" diaginertia="0.015 0.012 0.010"/>
+      <joint name="neck_yaw" type="hinge" axis="0 0 1" range="-0.9 0.9" damping="0.8"/>
+      <joint name="neck_pitch" type="hinge" axis="0 -1 0" range="-0.45 0.45" damping="1.0"/>
+      <joint name="neck_roll" type="hinge" axis="1 0 0" range="-0.35 0.35" damping="1.0"/>
+      <!-- The original rigid head geom is replaced by a skinned surface. -->
+      <!-- Eye bodies are moved slightly forward so the optics sit visibly through the shell. -->
+      <body name="left_eye" pos="0.058 0.030 0.14">
+        <joint name="left_eye_yaw" class="eye" axis="0 0 1"/>
+        <joint name="left_eye_pitch" class="eye" axis="0 -1 0"/>
+        <geom name="left_eye_sclera" type="sphere" size="0.0135" material="eye_white"/>
+        <geom name="left_eye_iris" type="sphere" pos="0.0108 0 0" size="0.0065" material="iris"/>
+        <geom name="left_eye_pupil" type="sphere" pos="0.0148 0 0" size="0.0031" material="pupil"/>
+      </body>
+      <body name="right_eye" pos="0.058 -0.030 0.14">
+        <joint name="right_eye_yaw" class="eye" axis="0 0 1"/>
+        <joint name="right_eye_pitch" class="eye" axis="0 -1 0"/>
+        <geom name="right_eye_sclera" type="sphere" size="0.0135" material="eye_white"/>
+        <geom name="right_eye_iris" type="sphere" pos="0.0108 0 0" size="0.0065" material="iris"/>
+        <geom name="right_eye_pupil" type="sphere" pos="0.0148 0 0" size="0.0031" material="pupil"/>
+      </body>
+      <body name="jaw_bone" pos="0.045000 0.000000 0.067000">
+        <inertial pos="0 0 0" mass="0.01" diaginertia="0.00001 0.00001 0.00001"/>
+        <joint name="jaw_open" type="hinge" axis="0 1 0" range="0.000000 0.420000" damping="0.35" armature="0.0005"/>
+      </body>
+      <body name="mouth_left_corner_bone" pos="0.083000 0.032000 0.091000">
+        <inertial pos="0 0 0" mass="0.01" diaginertia="0.00001 0.00001 0.00001"/>
+        <joint name="mouth_left_corner" type="slide" axis="0 0 1" range="-0.006000 0.007000" damping="0.25" armature="0.0005"/>
+      </body>
+      <body name="mouth_right_corner_bone" pos="0.083000 -0.032000 0.091000">
+        <inertial pos="0 0 0" mass="0.01" diaginertia="0.00001 0.00001 0.00001"/>
+        <joint name="mouth_right_corner" type="slide" axis="0 0 1" range="-0.006000 0.007000" damping="0.25" armature="0.0005"/>
+      </body>
+      <body name="upper_lip_center_bone" pos="0.087000 0.000000 0.097000">
+        <inertial pos="0 0 0" mass="0.01" diaginertia="0.00001 0.00001 0.00001"/>
+        <joint name="upper_lip_raise" type="slide" axis="0 0 1" range="-0.004000 0.005000" damping="0.25" armature="0.0005"/>
+      </body>
+      <body name="lower_lip_center_bone" pos="0.086000 0.000000 0.081000">
+        <inertial pos="0 0 0" mass="0.01" diaginertia="0.00001 0.00001 0.00001"/>
+        <joint name="lower_lip_drop" type="slide" axis="0 0 1" range="-0.006000 0.004000" damping="0.25" armature="0.0005"/>
+      </body>
+      <body name="upper_lip_left_bone" pos="0.084000 0.019000 0.096000">
+        <inertial pos="0 0 0" mass="0.01" diaginertia="0.00001 0.00001 0.00001"/>
+        <joint name="upper_lip_left" type="slide" axis="0 0 1" range="-0.004000 0.005000" damping="0.25" armature="0.0005"/>
+      </body>
+      <body name="upper_lip_right_bone" pos="0.084000 -0.019000 0.096000">
+        <inertial pos="0 0 0" mass="0.01" diaginertia="0.00001 0.00001 0.00001"/>
+        <joint name="upper_lip_right" type="slide" axis="0 0 1" range="-0.004000 0.005000" damping="0.25" armature="0.0005"/>
+      </body>
+      <body name="lower_lip_left_bone" pos="0.082000 0.019000 0.081000">
+        <inertial pos="0 0 0" mass="0.01" diaginertia="0.00001 0.00001 0.00001"/>
+        <joint name="lower_lip_left" type="slide" axis="0 0 1" range="-0.005000 0.004000" damping="0.25" armature="0.0005"/>
+      </body>
+      <body name="lower_lip_right_bone" pos="0.082000 -0.019000 0.081000">
+        <inertial pos="0 0 0" mass="0.01" diaginertia="0.00001 0.00001 0.00001"/>
+        <joint name="lower_lip_right" type="slide" axis="0 0 1" range="-0.005000 0.004000" damping="0.25" armature="0.0005"/>
+      </body>
+      <body name="left_cheek_bone" pos="0.071000 0.045000 0.130000">
+        <inertial pos="0 0 0" mass="0.01" diaginertia="0.00001 0.00001 0.00001"/>
+        <joint name="left_cheek_raise" type="slide" axis="0 0 1" range="-0.002000 0.008000" damping="0.3" armature="0.0005"/>
+      </body>
+      <body name="right_cheek_bone" pos="0.071000 -0.045000 0.130000">
+        <inertial pos="0 0 0" mass="0.01" diaginertia="0.00001 0.00001 0.00001"/>
+        <joint name="right_cheek_raise" type="slide" axis="0 0 1" range="-0.002000 0.008000" damping="0.3" armature="0.0005"/>
+      </body>
+      <body name="left_brow_bone" pos="0.067000 0.030000 0.195000">
+        <inertial pos="0 0 0" mass="0.01" diaginertia="0.00001 0.00001 0.00001"/>
+        <joint name="left_brow_raise" type="slide" axis="0 0 1" range="-0.004000 0.010000" damping="0.25" armature="0.0005"/>
+      </body>
+      <body name="right_brow_bone" pos="0.067000 -0.030000 0.195000">
+        <inertial pos="0 0 0" mass="0.01" diaginertia="0.00001 0.00001 0.00001"/>
+        <joint name="right_brow_raise" type="slide" axis="0 0 1" range="-0.004000 0.010000" damping="0.25" armature="0.0005"/>
+      </body>
+      <body name="left_eyelid_bone" pos="0.078000 0.030000 0.171000">
+        <inertial pos="0 0 0" mass="0.01" diaginertia="0.00001 0.00001 0.00001"/>
+        <joint name="left_eyelid_close" type="slide" axis="0 0 1" range="-0.012000 0.001000" damping="0.2" armature="0.0005"/>
+      </body>
+      <body name="right_eyelid_bone" pos="0.078000 -0.030000 0.171000">
+        <inertial pos="0 0 0" mass="0.01" diaginertia="0.00001 0.00001 0.00001"/>
+        <joint name="right_eyelid_close" type="slide" axis="0 0 1" range="-0.012000 0.001000" damping="0.2" armature="0.0005"/>
+      </body>
+      <body name="left_nostril_bone" pos="0.093000 0.012000 0.113000">
+        <inertial pos="0 0 0" mass="0.01" diaginertia="0.00001 0.00001 0.00001"/>
+        <joint name="left_nostril_flare" type="slide" axis="0 1 0" range="0.000000 0.006000" damping="0.25" armature="0.0005"/>
+      </body>
+      <body name="right_nostril_bone" pos="0.093000 -0.012000 0.113000">
+        <inertial pos="0 0 0" mass="0.01" diaginertia="0.00001 0.00001 0.00001"/>
+        <joint name="right_nostril_flare" type="slide" axis="0 -1 0" range="0.000000 0.006000" damping="0.25" armature="0.0005"/>
+      </body>
+      <body name="left_nose_wrinkle_bone" pos="0.086000 0.018000 0.132000">
+        <inertial pos="0 0 0" mass="0.01" diaginertia="0.00001 0.00001 0.00001"/>
+        <joint name="left_nose_wrinkle" type="slide" axis="0 0 1" range="-0.003000 0.005000" damping="0.25" armature="0.0005"/>
+      </body>
+      <body name="right_nose_wrinkle_bone" pos="0.086000 -0.018000 0.132000">
+        <inertial pos="0 0 0" mass="0.01" diaginertia="0.00001 0.00001 0.00001"/>
+        <joint name="right_nose_wrinkle" type="slide" axis="0 0 1" range="-0.003000 0.005000" damping="0.25" armature="0.0005"/>
+      </body>
+      <body name="chin_bone" pos="0.075000 0.000000 0.052000">
+        <inertial pos="0 0 0" mass="0.01" diaginertia="0.00001 0.00001 0.00001"/>
+        <joint name="chin_protrude" type="slide" axis="1 0 0" range="-0.002000 0.008000" damping="0.3" armature="0.0005"/>
+      </body>
+    </body>
+  </worldbody>
+  <actuator>
+    <position name="neck_yaw" joint="neck_yaw" kp="5" ctrlrange="-0.9 0.9"/>
+    <position name="neck_pitch" joint="neck_pitch" kp="8" ctrlrange="-0.45 0.45"/>
+    <position name="neck_roll" joint="neck_roll" kp="8" ctrlrange="-0.35 0.35"/>
+    <position name="left_eye_yaw" joint="left_eye_yaw" class="eye"/>
+    <position name="left_eye_pitch" joint="left_eye_pitch" class="eye"/>
+    <position name="right_eye_yaw" joint="right_eye_yaw" class="eye"/>
+    <position name="right_eye_pitch" joint="right_eye_pitch" class="eye"/>
+    <position name="jaw_open_act" joint="jaw_open" kp="18" ctrlrange="0.000000 0.420000" forcelimited="true" forcerange="-8 8"/>
+    <position name="mouth_left_corner_act" joint="mouth_left_corner" kp="35" ctrlrange="-0.006000 0.007000" forcelimited="true" forcerange="-8 8"/>
+    <position name="mouth_right_corner_act" joint="mouth_right_corner" kp="35" ctrlrange="-0.006000 0.007000" forcelimited="true" forcerange="-8 8"/>
+    <position name="upper_lip_raise_act" joint="upper_lip_raise" kp="35" ctrlrange="-0.004000 0.005000" forcelimited="true" forcerange="-8 8"/>
+    <position name="lower_lip_drop_act" joint="lower_lip_drop" kp="35" ctrlrange="-0.006000 0.004000" forcelimited="true" forcerange="-8 8"/>
+    <position name="upper_lip_left_act" joint="upper_lip_left" kp="30" ctrlrange="-0.004000 0.005000" forcelimited="true" forcerange="-8 8"/>
+    <position name="upper_lip_right_act" joint="upper_lip_right" kp="30" ctrlrange="-0.004000 0.005000" forcelimited="true" forcerange="-8 8"/>
+    <position name="lower_lip_left_act" joint="lower_lip_left" kp="30" ctrlrange="-0.005000 0.004000" forcelimited="true" forcerange="-8 8"/>
+    <position name="lower_lip_right_act" joint="lower_lip_right" kp="30" ctrlrange="-0.005000 0.004000" forcelimited="true" forcerange="-8 8"/>
+    <position name="left_cheek_raise_act" joint="left_cheek_raise" kp="24" ctrlrange="-0.002000 0.008000" forcelimited="true" forcerange="-8 8"/>
+    <position name="right_cheek_raise_act" joint="right_cheek_raise" kp="24" ctrlrange="-0.002000 0.008000" forcelimited="true" forcerange="-8 8"/>
+    <position name="left_brow_raise_act" joint="left_brow_raise" kp="30" ctrlrange="-0.004000 0.010000" forcelimited="true" forcerange="-8 8"/>
+    <position name="right_brow_raise_act" joint="right_brow_raise" kp="30" ctrlrange="-0.004000 0.010000" forcelimited="true" forcerange="-8 8"/>
+    <position name="left_eyelid_close_act" joint="left_eyelid_close" kp="38" ctrlrange="-0.012000 0.001000" forcelimited="true" forcerange="-8 8"/>
+    <position name="right_eyelid_close_act" joint="right_eyelid_close" kp="38" ctrlrange="-0.012000 0.001000" forcelimited="true" forcerange="-8 8"/>
+    <position name="left_nostril_flare_act" joint="left_nostril_flare" kp="28" ctrlrange="0.000000 0.006000" forcelimited="true" forcerange="-8 8"/>
+    <position name="right_nostril_flare_act" joint="right_nostril_flare" kp="28" ctrlrange="0.000000 0.006000" forcelimited="true" forcerange="-8 8"/>
+    <position name="left_nose_wrinkle_act" joint="left_nose_wrinkle" kp="25" ctrlrange="-0.003000 0.005000" forcelimited="true" forcerange="-8 8"/>
+    <position name="right_nose_wrinkle_act" joint="right_nose_wrinkle" kp="25" ctrlrange="-0.003000 0.005000" forcelimited="true" forcerange="-8 8"/>
+    <position name="chin_protrude_act" joint="chin_protrude" kp="25" ctrlrange="-0.002000 0.008000" forcelimited="true" forcerange="-8 8"/>
+  </actuator>
+</mujoco>
