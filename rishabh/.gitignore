@@ -8,3 +8,9 @@ data/models/
 # Seamless Interaction downloads and trials derived from them (regenerate with gr-seamless / gr-dataset)
 data/seamless-motion/
 data/gr-real/
+# DyaPlex: pinned upstream clones (python -m dyaplex fetch-upstream) and large / dataset-derived run outputs
+third_party/
+runs/dyaplex-e2e/*.pt
+runs/dyaplex-e2e/tokens/
+runs/dyaplex-e2e/*.wav
+runs/dyaplex-e2e/rig/*.wav

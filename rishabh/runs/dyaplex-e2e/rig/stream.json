@@ -1,0 +1,15 @@
+{
+  "frames": 400,
+  "duration_s": 20.0,
+  "teacher": {
+    "file": "runs/dyaplex-e2e/teacher_dyaplex.npz",
+    "sha256": "8634d34ce9618c54dcf956c1f8d198999ae59f30c228c35d04211a7902b2a186",
+    "source": "dyaplex_tiny_e2e_smoke_untrained_scale_not_a_dyaplex_checkpoint",
+    "mapped_with": null,
+    "clock_offset_s": 0.0,
+    "max_age_s": 0.15,
+    "coverage": 1.0,
+    "median_age_s": 0.024998999999999327
+  },
+  "context_dim": 8
+}

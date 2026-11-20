@@ -1,0 +1,1087 @@
+{
+  "scope": {
+    "verifies": [
+      "data plumbing on real Seamless pairs: pairing, validity masks, 30->25 fps resampling, part features",
+      "causality, band layout and round trips of the four GestureLSM-derived causal RVQ-VAEs (reference architecture)",
+      "PersonaPlex per-layer taps on NVIDIA's own LMModel/LMGen code: teacher-forced == streaming, taps do not change outputs, frame/time mapping",
+      "motion tower wiring: 46-token interleaving, Eq. 2-4 masks, band-masked loss, causality, ability to fit",
+      "streaming sampler: KV cache == recompute, prefix stability under changed future inputs, both modes",
+      "decoded agent motion drives all 27 actuators of Samhita's rig through the existing speech_ai replay path"
+    ],
+    "does_not_verify": [
+      "anything about motion quality: codecs and tower are trained for minutes on 10 / 2 pairs",
+      "real PersonaPlex-7B states (needs the gated checkpoint and a CUDA GPU); the tiny LM here has the published wiring (32 layers, 17 streams, delays, context 3000) but random weights",
+      "Mimi audio tokens and the SentencePiece inner-monologue text: replaced by band-energy stand-in tokens and PAD",
+      "SPECTRE/FLAME faces: the 56-D face track is a stand-in built from Seamless FAU values",
+      "SMPL-X forward kinematics and the paper's metrics (need the SMPL-X model files)",
+      "paper-scale sizes: d_s=64 instead of 4096, d_m=128 instead of 1024, window 1024 instead of 4096 tokens"
+    ]
+  },
+  "criteria": {
+    "data": {
+      "pairing": {
+        "pass": true,
+        "pairs": [
+          [
+            "V00_S0080_I00000135",
+            "V00_S0080_I00000135_P0115",
+            "V00_S0080_I00000135_P0116"
+          ],
+          [
+            "V00_S0152_I00000377",
+            "V00_S0152_I00000377_P0216",
+            "V00_S0152_I00000377_P0217"
+          ],
+          [
+            "V00_S0255_I00000497",
+            "V00_S0255_I00000497_P0350",
+            "V00_S0255_I00000497_P0351"
+          ],
+          [
+            "V00_S0274_I00000129",
+            "V00_S0274_I00000129_P0370",
+            "V00_S0274_I00000129_P0371"
+          ],
+          [
+            "V00_S0305_I00000373",
+            "V00_S0305_I00000373_P0116",
+            "V00_S0305_I00000373_P0410"
+          ],
+          [
+            "V00_S0347_I00000128",
+            "V00_S0347_I00000128_P0466",
+            "V00_S0347_I00000128_P0467"
+          ],
+          [
+            "V00_S0360_I00000374",
+            "V00_S0360_I00000374_P0484",
+            "V00_S0360_I00000374_P0485"
+          ],
+          [
+            "V00_S0377_I00000482",
+            "V00_S0377_I00000482_P0410",
+            "V00_S0377_I00000482_P0500"
+          ],
+          [
+            "V00_S0515_I00000384",
+            "V00_S0515_I00000384_P0371",
+            "V00_S0515_I00000384_P0660"
+          ],
+          [
+            "V00_S0521_I00000126",
+            "V00_S0521_I00000126_P0566",
+            "V00_S0521_I00000126_P0663"
+          ]
+        ]
+      },
+      "clip_filter_ran": {
+        "pass": true,
+        "kept_pairs": 10,
+        "probed": 20,
+        "statuses": [
+          "portrait_or_square"
+        ]
+      },
+      "resample_sync_within_one_frame": {
+        "pass": true,
+        "max_resample_error_s": 0.006666666666674814,
+        "audio_minus_motion_s": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "6d_round_trip": {
+        "pass": true,
+        "max_abs": 1.1920928955078125e-07
+      },
+      "6d_matrix_round_trip": {
+        "pass": true,
+        "max_abs": 5.551115123125783e-16
+      },
+      "token_cache_T_by_22_uint16_in_band": {
+        "pass": true,
+        "shapes": {
+          "V00_S0080_I00000135_P0115": [
+            2200,
+            22
+          ],
+          "V00_S0080_I00000135_P0116": [
+            2200,
+            22
+          ],
+          "V00_S0152_I00000377_P0216": [
+            2600,
+            22
+          ],
+          "V00_S0152_I00000377_P0217": [
+            2600,
+            22
+          ],
+          "V00_S0255_I00000497_P0350": [
+            2850,
+            22
+          ],
+          "V00_S0255_I00000497_P0351": [
+            2850,
+            22
+          ],
+          "V00_S0274_I00000129_P0370": [
+            2700,
+            22
+          ],
+          "V00_S0274_I00000129_P0371": [
+            2700,
+            22
+          ],
+          "V00_S0305_I00000373_P0116": [
+            1900,
+            22
+          ],
+          "V00_S0305_I00000373_P0410": [
+            1900,
+            22
+          ],
+          "V00_S0347_I00000128_P0466": [
+            1750,
+            22
+          ],
+          "V00_S0347_I00000128_P0467": [
+            1750,
+            22
+          ],
+          "V00_S0360_I00000374_P0484": [
+            4600,
+            22
+          ],
+          "V00_S0360_I00000374_P0485": [
+            4600,
+            22
+          ],
+          "V00_S0377_I00000482_P0410": [
+            1525,
+            22
+          ],
+          "V00_S0377_I00000482_P0500": [
+            1525,
+            22
+          ],
+          "V00_S0515_I00000384_P0371": [
+            1575,
+            22
+          ],
+          "V00_S0515_I00000384_P0660": [
+            1575,
+            22
+          ],
+          "V00_S0521_I00000126_P0566": [
+            3725,
+            22
+          ],
+          "V00_S0521_I00000126_P0663": [
+            3725,
+            22
+          ]
+        }
+      }
+    },
+    "codec": {
+      "upper_held_recon_falls": {
+        "pass": true,
+        "first": 0.4225323498249054,
+        "best": 0.17437973618507385
+      },
+      "hands_held_recon_falls": {
+        "pass": true,
+        "first": 0.3284032940864563,
+        "best": 0.17783871293067932
+      },
+      "lower_trans_held_recon_falls": {
+        "pass": true,
+        "first": 0.7226939797401428,
+        "best": 0.2337082475423813
+      },
+      "face_held_recon_falls": {
+        "pass": true,
+        "first": 0.17048192024230957,
+        "best": 0.07746563851833344
+      },
+      "encoder_no_future_leak": {
+        "pass": true,
+        "upper": {
+          "codes_equal": true,
+          "latent_max_diff": 0.0,
+          "decoder_prefix_max_diff": 0.0
+        },
+        "hands": {
+          "codes_equal": true,
+          "latent_max_diff": 0.0,
+          "decoder_prefix_max_diff": 0.0
+        },
+        "lower_trans": {
+          "codes_equal": true,
+          "latent_max_diff": 0.0,
+          "decoder_prefix_max_diff": 0.0
+        },
+        "face": {
+          "codes_equal": true,
+          "latent_max_diff": 0.0,
+          "decoder_prefix_max_diff": 0.0
+        }
+      },
+      "decoder_causal": {
+        "pass": true,
+        "upper": 0.0,
+        "hands": 0.0,
+        "lower_trans": 0.0,
+        "face": 0.0
+      },
+      "batched_equals_incremental": {
+        "pass": true,
+        "upper": {
+          "codes_equal": true
+        },
+        "hands": {
+          "codes_equal": true
+        },
+        "lower_trans": {
+          "codes_equal": true
+        },
+        "face": {
+          "codes_equal": true
+        }
+      }
+    },
+    "speech": {
+      "teacher_forced_equals_streaming_all_32_layers": {
+        "pass": true,
+        "layers": 32,
+        "frames": 399,
+        "max_abs": 6.67572021484375e-06,
+        "rel": 3.679668338918418e-07,
+        "per_layer_max": [
+          1.9073486328125e-06,
+          1.9073486328125e-06,
+          1.9073486328125e-06,
+          1.9073486328125e-06,
+          1.9073486328125e-06,
+          2.384185791015625e-06,
+          2.86102294921875e-06,
+          2.86102294921875e-06,
+          2.86102294921875e-06,
+          2.86102294921875e-06,
+          3.814697265625e-06,
+          3.814697265625e-06,
+          3.814697265625e-06,
+          3.814697265625e-06,
+          3.814697265625e-06,
+          3.814697265625e-06,
+          5.7220458984375e-06,
+          5.7220458984375e-06,
+          5.7220458984375e-06,
+          5.7220458984375e-06,
+          5.7220458984375e-06,
+          5.7220458984375e-06,
+          5.7220458984375e-06,
+          5.7220458984375e-06,
+          5.7220458984375e-06,
+          5.7220458984375e-06,
+          5.7220458984375e-06,
+          5.7220458984375e-06,
+          5.7220458984375e-06,
+          5.7220458984375e-06,
+          6.67572021484375e-06,
+          6.67572021484375e-06
+        ]
+      },
+      "taps_do_not_change_outputs": {
+        "pass": true,
+        "frames_compared": 58
+      }
+    },
+    "tower": {
+      "46_tokens_per_frame_and_eq2": {
+        "pass": true,
+        "window_frames": 22,
+        "tokens": 1012
+      },
+      "no_future_speech_or_motion_leak_untrained": {
+        "pass": true,
+        "max_diff_past": 0.0,
+        "max_diff_future_changed": 0.11114633083343506
+      },
+      "overfit_teacher_forced_token_acc_gt_0.95": {
+        "pass": false,
+        "token_acc": 0.8401342975206612,
+        "examples": [
+          "V00_S0080_I00000135:P0115->P0116",
+          "V00_S0080_I00000135:P0116->P0115",
+          "V00_S0152_I00000377:P0216->P0217",
+          "V00_S0152_I00000377:P0217->P0216"
+        ],
+        "iterations": 800
+      },
+      "no_future_speech_or_motion_leak_trained": {
+        "pass": true,
+        "max_diff_past": 0.0,
+        "max_diff_future_changed": 11.016520500183105
+      }
+    },
+    "streaming": {
+      "kv_cache_equals_recompute": {
+        "pass": true,
+        "frames": 20,
+        "max_logit_diff": 8.344650268554688e-06
+      },
+      "past_outputs_unchanged_when_future_inputs_change": {
+        "pass": true,
+        "compared_frames": 10,
+        "later_frames_differ": true
+      },
+      "both_speaker_mode_in_band": {
+        "pass": true
+      },
+      "agent_only_mode_in_band_and_partner_copied": {
+        "pass": true
+      },
+      "full_window_generation_in_band": {
+        "pass": true,
+        "frames": 250
+      }
+    },
+    "sim": {
+      "27_commands_finite_and_in_range": {
+        "pass": true,
+        "frames": 400,
+        "channels": 27
+      },
+      "jaw_open_correlates_with_agent_speech": {
+        "pass": true,
+        "pearson_r": 0.03287518979281083,
+        "reference_ground_truth_jaw_r": -0.12219667830241629,
+        "video": "runs/dyaplex-e2e/rig/rig.mp4"
+      }
+    }
+  },
+  "info": {
+    "personaplex_checkpoint_for_real_run": [
+      "nvidia/personaplex-7b-v1",
+      "fdaf4090a61cb315c138a1faee287ffd6c716309"
+    ],
+    "video_probe": [
+      {
+        "file_id": "V00_S0080_I00000135_P0115",
+        "width": 1080,
+        "height": 1920,
+        "rotation": 0,
+        "status": "portrait_or_square",
+        "keep": true
+      },
+      {
+        "file_id": "V00_S0080_I00000135_P0116",
+        "width": 1080,
+        "height": 1920,
+        "rotation": 0,
+        "status": "portrait_or_square",
+        "keep": true
+      },
+      {
+        "file_id": "V00_S0152_I00000377_P0216",
+        "width": 1080,
+        "height": 1920,
+        "rotation": 0,
+        "status": "portrait_or_square",
+        "keep": true
+      },
+      {
+        "file_id": "V00_S0152_I00000377_P0217",
+        "width": 1080,
+        "height": 1920,
+        "rotation": 0,
+        "status": "portrait_or_square",
+        "keep": true
+      },
+      {
+        "file_id": "V00_S0255_I00000497_P0350",
+        "width": 1080,
+        "height": 1920,
+        "rotation": 0,
+        "status": "portrait_or_square",
+        "keep": true
+      },
+      {
+        "file_id": "V00_S0255_I00000497_P0351",
+        "width": 1080,
+        "height": 1920,
+        "rotation": 0,
+        "status": "portrait_or_square",
+        "keep": true
+      },
+      {
+        "file_id": "V00_S0274_I00000129_P0370",
+        "width": 1080,
+        "height": 1920,
+        "rotation": 0,
+        "status": "portrait_or_square",
+        "keep": true
+      },
+      {
+        "file_id": "V00_S0274_I00000129_P0371",
+        "width": 1080,
+        "height": 1920,
+        "rotation": 0,
+        "status": "portrait_or_square",
+        "keep": true
+      },
+      {
+        "file_id": "V00_S0305_I00000373_P0116",
+        "width": 1080,
+        "height": 1920,
+        "rotation": 0,
+        "status": "portrait_or_square",
+        "keep": true
+      },
+      {
+        "file_id": "V00_S0305_I00000373_P0410",
+        "width": 1080,
+        "height": 1920,
+        "rotation": 0,
+        "status": "portrait_or_square",
+        "keep": true
+      },
+      {
+        "file_id": "V00_S0347_I00000128_P0466",
+        "width": 1080,
+        "height": 1920,
+        "rotation": 0,
+        "status": "portrait_or_square",
+        "keep": true
+      },
+      {
+        "file_id": "V00_S0347_I00000128_P0467",
+        "width": 1080,
+        "height": 1920,
+        "rotation": 0,
+        "status": "portrait_or_square",
+        "keep": true
+      },
+      {
+        "file_id": "V00_S0360_I00000374_P0484",
+        "width": 1080,
+        "height": 1920,
+        "rotation": 0,
+        "status": "portrait_or_square",
+        "keep": true
+      },
+      {
+        "file_id": "V00_S0360_I00000374_P0485",
+        "width": 1080,
+        "height": 1920,
+        "rotation": 0,
+        "status": "portrait_or_square",
+        "keep": true
+      },
+      {
+        "file_id": "V00_S0377_I00000482_P0410",
+        "width": 1080,
+        "height": 1920,
+        "rotation": 0,
+        "status": "portrait_or_square",
+        "keep": true
+      },
+      {
+        "file_id": "V00_S0377_I00000482_P0500",
+        "width": 1080,
+        "height": 1920,
+        "rotation": 0,
+        "status": "portrait_or_square",
+        "keep": true
+      },
+      {
+        "file_id": "V00_S0515_I00000384_P0371",
+        "width": 1080,
+        "height": 1920,
+        "rotation": 0,
+        "status": "portrait_or_square",
+        "keep": true
+      },
+      {
+        "file_id": "V00_S0515_I00000384_P0660",
+        "width": 1080,
+        "height": 1920,
+        "rotation": 0,
+        "status": "portrait_or_square",
+        "keep": true
+      },
+      {
+        "file_id": "V00_S0521_I00000126_P0566",
+        "width": 1080,
+        "height": 1920,
+        "rotation": 0,
+        "status": "portrait_or_square",
+        "keep": true
+      },
+      {
+        "file_id": "V00_S0521_I00000126_P0663",
+        "width": 1080,
+        "height": 1920,
+        "rotation": 0,
+        "status": "portrait_or_square",
+        "keep": true
+      }
+    ],
+    "participants": {
+      "V00_S0080_I00000135_P0115": {
+        "frames_30": 5280,
+        "frames_25": 4400,
+        "valid_30": 0.9253787878787879,
+        "zero_face_fraction": 0.07954545454545459
+      },
+      "V00_S0080_I00000135_P0116": {
+        "frames_30": 5280,
+        "frames_25": 4400,
+        "valid_30": 0.9270833333333334,
+        "zero_face_fraction": 0.5795454545454546
+      },
+      "V00_S0152_I00000377_P0216": {
+        "frames_30": 6240,
+        "frames_25": 5200,
+        "valid_30": 1.0,
+        "zero_face_fraction": 0.019230769230769273
+      },
+      "V00_S0152_I00000377_P0217": {
+        "frames_30": 6240,
+        "frames_25": 5200,
+        "valid_30": 1.0,
+        "zero_face_fraction": 0.038461538461538436
+      },
+      "V00_S0255_I00000497_P0350": {
+        "frames_30": 6840,
+        "frames_25": 5700,
+        "valid_30": 0.9736842105263158,
+        "zero_face_fraction": 0.10526315789473684
+      },
+      "V00_S0255_I00000497_P0351": {
+        "frames_30": 6840,
+        "frames_25": 5700,
+        "valid_30": 0.9868421052631579,
+        "zero_face_fraction": 0.4473684210526315
+      },
+      "V00_S0274_I00000129_P0370": {
+        "frames_30": 6480,
+        "frames_25": 5400,
+        "valid_30": 0.9987654320987654,
+        "zero_face_fraction": 0.35185185185185186
+      },
+      "V00_S0274_I00000129_P0371": {
+        "frames_30": 6480,
+        "frames_25": 5400,
+        "valid_30": 0.9998456790123457,
+        "zero_face_fraction": 0.25
+      },
+      "V00_S0305_I00000373_P0116": {
+        "frames_30": 4560,
+        "frames_25": 3800,
+        "valid_30": 0.9817982456140351,
+        "zero_face_fraction": 0.4342105263157895
+      },
+      "V00_S0305_I00000373_P0410": {
+        "frames_30": 4560,
+        "frames_25": 3800,
+        "valid_30": 0.9980263157894737,
+        "zero_face_fraction": 0.07894736842105265
+      },
+      "V00_S0347_I00000128_P0466": {
+        "frames_30": 4200,
+        "frames_25": 3500,
+        "valid_30": 0.9866666666666667,
+        "zero_face_fraction": 0.44285714285714284
+      },
+      "V00_S0347_I00000128_P0467": {
+        "frames_30": 4200,
+        "frames_25": 3500,
+        "valid_30": 0.9821428571428571,
+        "zero_face_fraction": 0.2571428571428571
+      },
+      "V00_S0360_I00000374_P0484": {
+        "frames_30": 11040,
+        "frames_25": 9200,
+        "valid_30": 1.0,
+        "zero_face_fraction": 0.005434782608695676
+      },
+      "V00_S0360_I00000374_P0485": {
+        "frames_30": 11040,
+        "frames_25": 9200,
+        "valid_30": 0.9995471014492754,
+        "zero_face_fraction": 0.010869565217391353
+      },
+      "V00_S0377_I00000482_P0410": {
+        "frames_30": 3660,
+        "frames_25": 3050,
+        "valid_30": 1.0,
+        "zero_face_fraction": 0.0
+      },
+      "V00_S0377_I00000482_P0500": {
+        "frames_30": 3660,
+        "frames_25": 3050,
+        "valid_30": 1.0,
+        "zero_face_fraction": 0.11475409836065575
+      },
+      "V00_S0515_I00000384_P0371": {
+        "frames_30": 3780,
+        "frames_25": 3150,
+        "valid_30": 0.9878306878306878,
+        "zero_face_fraction": 0.31746031746031744
+      },
+      "V00_S0515_I00000384_P0660": {
+        "frames_30": 3780,
+        "frames_25": 3150,
+        "valid_30": 0.9883597883597883,
+        "zero_face_fraction": 0.04761904761904767
+      },
+      "V00_S0521_I00000126_P0566": {
+        "frames_30": 8940,
+        "frames_25": 7450,
+        "valid_30": 0.9988814317673378,
+        "zero_face_fraction": 0.03355704697986572
+      },
+      "V00_S0521_I00000126_P0663": {
+        "frames_30": 8940,
+        "frames_25": 7450,
+        "valid_30": 1.0,
+        "zero_face_fraction": 0.0
+      }
+    },
+    "face_pair_filter": {
+      "V00_S0080_I00000135": false,
+      "V00_S0152_I00000377": true,
+      "V00_S0255_I00000497": false,
+      "V00_S0274_I00000129": false,
+      "V00_S0305_I00000373": false,
+      "V00_S0347_I00000128": false,
+      "V00_S0360_I00000374": true,
+      "V00_S0377_I00000482": true,
+      "V00_S0515_I00000384": false,
+      "V00_S0521_I00000126": true
+    },
+    "codecs": {
+      "upper": {
+        "best_held_recon": 0.17437973618507385,
+        "history": [
+          {
+            "iter": 100,
+            "train_loss": 0.3205755949020386,
+            "held_recon": 0.4225323498249054,
+            "perplexity": 182.0260467529297,
+            "seconds": 16.5
+          },
+          {
+            "iter": 200,
+            "train_loss": 0.23543420433998108,
+            "held_recon": 0.41138312220573425,
+            "perplexity": 180.62725830078125,
+            "seconds": 32.0
+          },
+          {
+            "iter": 300,
+            "train_loss": 0.13809946179389954,
+            "held_recon": 0.3137669563293457,
+            "perplexity": 250.96075439453125,
+            "seconds": 47.9
+          },
+          {
+            "iter": 400,
+            "train_loss": 0.10058066248893738,
+            "held_recon": 0.23475739359855652,
+            "perplexity": 349.3877258300781,
+            "seconds": 63.8
+          },
+          {
+            "iter": 500,
+            "train_loss": 0.08366142213344574,
+            "held_recon": 0.19747450947761536,
+            "perplexity": 411.818115234375,
+            "seconds": 79.6
+          },
+          {
+            "iter": 600,
+            "train_loss": 0.09895692765712738,
+            "held_recon": 0.17437973618507385,
+            "perplexity": 408.885009765625,
+            "seconds": 95.5
+          }
+        ]
+      },
+      "hands": {
+        "best_held_recon": 0.17783871293067932,
+        "history": [
+          {
+            "iter": 100,
+            "train_loss": 0.3520243763923645,
+            "held_recon": 0.3284032940864563,
+            "perplexity": 404.0706787109375,
+            "seconds": 16.1
+          },
+          {
+            "iter": 200,
+            "train_loss": 0.23282639682292938,
+            "held_recon": 0.43728354573249817,
+            "perplexity": 265.0886535644531,
+            "seconds": 32.0
+          },
+          {
+            "iter": 300,
+            "train_loss": 0.17472250759601593,
+            "held_recon": 0.2942991852760315,
+            "perplexity": 235.1279754638672,
+            "seconds": 48.0
+          },
+          {
+            "iter": 400,
+            "train_loss": 0.1256631314754486,
+            "held_recon": 0.2217898666858673,
+            "perplexity": 297.4450988769531,
+            "seconds": 63.9
+          },
+          {
+            "iter": 500,
+            "train_loss": 0.10595445334911346,
+            "held_recon": 0.19059135019779205,
+            "perplexity": 374.6783752441406,
+            "seconds": 79.8
+          },
+          {
+            "iter": 600,
+            "train_loss": 0.09598929435014725,
+            "held_recon": 0.17783871293067932,
+            "perplexity": 334.3433532714844,
+            "seconds": 95.8
+          }
+        ]
+      },
+      "lower_trans": {
+        "best_held_recon": 0.2337082475423813,
+        "history": [
+          {
+            "iter": 100,
+            "train_loss": 0.22860011458396912,
+            "held_recon": 0.7226939797401428,
+            "perplexity": 78.47770690917969,
+            "seconds": 15.5
+          },
+          {
+            "iter": 200,
+            "train_loss": 0.14076849818229675,
+            "held_recon": 0.39497509598731995,
+            "perplexity": 185.67718505859375,
+            "seconds": 30.8
+          },
+          {
+            "iter": 300,
+            "train_loss": 0.0784505158662796,
+            "held_recon": 0.3941759467124939,
+            "perplexity": 412.24530029296875,
+            "seconds": 45.9
+          },
+          {
+            "iter": 400,
+            "train_loss": 0.05958797037601471,
+            "held_recon": 0.30739128589630127,
+            "perplexity": 435.1252746582031,
+            "seconds": 61.1
+          },
+          {
+            "iter": 500,
+            "train_loss": 0.04522477835416794,
+            "held_recon": 0.24801848828792572,
+            "perplexity": 507.8318786621094,
+            "seconds": 76.2
+          },
+          {
+            "iter": 600,
+            "train_loss": 0.05925726518034935,
+            "held_recon": 0.2337082475423813,
+            "perplexity": 500.9920959472656,
+            "seconds": 91.4
+          }
+        ]
+      },
+      "face": {
+        "best_held_recon": 0.07746563851833344,
+        "history": [
+          {
+            "iter": 100,
+            "train_loss": 0.18528419733047485,
+            "held_recon": 0.17048192024230957,
+            "perplexity": 61.87202453613281,
+            "seconds": 14.5
+          },
+          {
+            "iter": 200,
+            "train_loss": 0.11794105172157288,
+            "held_recon": 0.15194685757160187,
+            "perplexity": 392.43450927734375,
+            "seconds": 29.0
+          },
+          {
+            "iter": 300,
+            "train_loss": 0.11175030469894409,
+            "held_recon": 0.12377876043319702,
+            "perplexity": 240.4199981689453,
+            "seconds": 43.2
+          },
+          {
+            "iter": 400,
+            "train_loss": 0.07506977766752243,
+            "held_recon": 0.10329057276248932,
+            "perplexity": 305.8714294433594,
+            "seconds": 57.5
+          },
+          {
+            "iter": 500,
+            "train_loss": 0.061493437737226486,
+            "held_recon": 0.0847247987985611,
+            "perplexity": 367.85284423828125,
+            "seconds": 71.9
+          },
+          {
+            "iter": 600,
+            "train_loss": 0.051237188279628754,
+            "held_recon": 0.07746563851833344,
+            "perplexity": 403.2261657714844,
+            "seconds": 86.2
+          }
+        ]
+      }
+    },
+    "speech_time_base": {
+      "definition": "H[s] = output of the LMGen.step call that received stream frame s; equals forward_train position s-1; conversation frame j -> stream frame prompt_frames + j (+ state_offset)",
+      "prompt_frames": 149,
+      "state_offset": 0,
+      "prompt_layout": {
+        "voice": 125,
+        "silence": 6,
+        "text": 12,
+        "silence_2": 6
+      }
+    },
+    "tower_params_M": 9.057025,
+    "tower_history": [
+      {
+        "iter": 100,
+        "loss": 5.703333854675293,
+        "ce": 5.69688081741333,
+        "va": 0.645289957523346,
+        "token_acc": 0.07417929172515869,
+        "eval_token_acc": 0.054465105601469235,
+        "seconds": 135.4
+      },
+      {
+        "iter": 200,
+        "loss": 5.256680011749268,
+        "ce": 5.250288009643555,
+        "va": 0.6391773819923401,
+        "token_acc": 0.09280303120613098,
+        "eval_token_acc": 0.0952995867768595,
+        "seconds": 288.5
+      },
+      {
+        "iter": 300,
+        "loss": 4.66770076751709,
+        "ce": 4.661656856536865,
+        "va": 0.6044098138809204,
+        "token_acc": 0.14772726595401764,
+        "eval_token_acc": 0.15673783287419651,
+        "seconds": 452.7
+      },
+      {
+        "iter": 400,
+        "loss": 3.8048298358917236,
+        "ce": 3.7984375953674316,
+        "va": 0.6392264366149902,
+        "token_acc": 0.2711489796638489,
+        "eval_token_acc": 0.26672979797979796,
+        "seconds": 612.8
+      },
+      {
+        "iter": 500,
+        "loss": 3.2209765911102295,
+        "ce": 3.215409755706787,
+        "va": 0.556687593460083,
+        "token_acc": 0.3920454680919647,
+        "eval_token_acc": 0.400941230486685,
+        "seconds": 771.4
+      },
+      {
+        "iter": 600,
+        "loss": 2.2298460006713867,
+        "ce": 2.2246153354644775,
+        "va": 0.5230618715286255,
+        "token_acc": 0.5621843338012695,
+        "eval_token_acc": 0.550734618916437,
+        "seconds": 929.6
+      },
+      {
+        "iter": 700,
+        "loss": 1.4314255714416504,
+        "ce": 1.4265867471694946,
+        "va": 0.4838799238204956,
+        "token_acc": 0.7244318127632141,
+        "eval_token_acc": 0.7106290174471993,
+        "seconds": 1087.8
+      },
+      {
+        "iter": 800,
+        "loss": 1.0548678636550903,
+        "ce": 1.0495660305023193,
+        "va": 0.5301849246025085,
+        "token_acc": 0.8311237096786499,
+        "eval_token_acc": 0.8401342975206612,
+        "seconds": 1506.2
+      }
+    ],
+    "rig_range_of_motion": {
+      "neck_yaw": 0.21933934092521667,
+      "neck_pitch": 0.324632853269577,
+      "neck_roll": 0.29502934217453003,
+      "left_eye_yaw": 0.0001730476797092706,
+      "right_eye_yaw": 0.00017275803838856518,
+      "left_eye_pitch": 9.510064410278574e-05,
+      "right_eye_pitch": 0.00010663634748198092,
+      "left_brow_raise": 0.014420964755117893,
+      "right_brow_raise": 0.01434997096657753,
+      "left_eyelid_close": 0.012986251153051853,
+      "right_eyelid_close": 0.012883483432233334,
+      "jaw_open": 0.247967928647995,
+      "mouth_left_corner": 0.009056111797690392,
+      "mouth_right_corner": 0.008910423144698143,
+      "upper_lip_raise": 0.005762629676610231,
+      "upper_lip_left": 0.004917495418339968,
+      "upper_lip_right": 0.004988175816833973,
+      "lower_lip_drop": 0.006043675821274519,
+      "lower_lip_left": 0.005383681505918503,
+      "lower_lip_right": 0.005329173058271408,
+      "left_cheek_raise": 0.005683941766619682,
+      "right_cheek_raise": 0.006047451868653297,
+      "left_nostril_flare": 0.003457827726379037,
+      "right_nostril_flare": 0.002616127720102668,
+      "left_nose_wrinkle": 0.004571055062115192,
+      "right_nose_wrinkle": 0.004720418713986874,
+      "chin_protrude": 0.006430136505514383
+    }
+  },
+  "timing": {
+    "codec_training_s": 371.38881611824036,
+    "speech_teacher_forced_s": 0.5021958351135254,
+    "speech_streaming_ms_per_frame": 91.58730506896973,
+    "tower_training_s": 1507.0541231632233,
+    "per_80ms_frame": {
+      "speech_tower_tiny_ms": 91.58730506896973,
+      "motion_tower_tiny_ms": 894.7557322283392,
+      "decoders_ms": 2.1191396713256836,
+      "sim_replay_ms": 278.9164400100708
+    },
+    "generation_s": 228.48543286323547,
+    "total_s": 2525.689357995987
+  },
+  "config": {
+    "codec": {
+      "width": 512,
+      "code_dim": 128,
+      "depth": 3,
+      "dilation_growth_rate": 3,
+      "down_t": 1,
+      "stride_t": 2,
+      "causal": true,
+      "activation": "relu",
+      "nb_code": 1024,
+      "mu": 0.99,
+      "quantize_dropout_prob": 0.2,
+      "lr": 0.0002,
+      "betas": [
+        0.9,
+        0.99
+      ],
+      "weight_decay": 0.0,
+      "batch_size": 64,
+      "window": 64,
+      "total_iter": 600,
+      "warmup_iter": 400,
+      "milestones": [
+        400
+      ],
+      "gamma": 0.05,
+      "commit": 0.02,
+      "loss_vel": 0.0,
+      "sample_codebook_temp": 0.5
+    },
+    "speech": {
+      "dim": 64,
+      "num_heads": 4,
+      "num_layers": 32,
+      "hidden_scale": 4.125,
+      "context": 3000,
+      "depformer_dim": 32,
+      "depformer_num_heads": 2,
+      "depformer_num_layers": 2,
+      "text_card": 512,
+      "card": 2048,
+      "silence_frames": 6,
+      "voice_prompt_s": 10.0,
+      "text_prompt": "You enjoy having a good conversation.",
+      "state_offset": 0
+    },
+    "tower": {
+      "layers": 32,
+      "d_model": 128,
+      "heads": 4,
+      "cross_heads": 4,
+      "cross_head_dim": 32,
+      "speech_dim": 64,
+      "ff_scale": 4.125,
+      "rope_max_period": 10000.0,
+      "window_tokens": 1024,
+      "norm_eps": 1e-05,
+      "supervise": "body",
+      "supervise_speakers": "AB",
+      "beta_va": 0.01
+    },
+    "tower_train": {
+      "lr": 0.0003,
+      "betas": [
+        0.9,
+        0.95
+      ],
+      "weight_decay": 0.1,
+      "grad_clip": 1.0,
+      "batch_size": 4,
+      "iterations": 800
+    },
+    "sample": {
+      "temperature": 1.0,
+      "top_k": 200
+    }
+  },
+  "pins": {
+    "personaplex": "3428dfd95309a7f3c84fd93259ded0f810d1ff91",
+    "GestureLSM": "f52ac2f53dd1b99beb74bbcdbdf1a98118a36a70"
+  },
+  "passed": false
+}

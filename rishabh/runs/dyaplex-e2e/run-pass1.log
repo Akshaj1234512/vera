@@ -1,0 +1,69 @@
+== 1. data
+[PASS] data: pairing {"pairs": [["V00_S0080_I00000135", "V00_S0080_I00000135_P0115", "V00_S0080_I00000135_P0116"], ["V00_S0152_I00000377", "V00_S0152_I00000377_P0216", "V00_S0152_I00000377_P0217"], ["V00_S0255_I00000497", "V00_S0255_I00000497_P0350", "V00_S0255
+[PASS] data: clip_filter_ran {"kept_pairs": 10, "probed": 20, "statuses": ["portrait_or_square"]}
+[PASS] data: resample_sync_within_one_frame {"max_resample_error_s": 0.006666666666674814, "audio_minus_motion_s": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}
+[PASS] data: 6d_round_trip {"max_abs": 1.1920928955078125e-07}
+[PASS] data: 6d_matrix_round_trip {"max_abs": 5.551115123125783e-16}
+== 2. codecs
+/Users/risha/Github/vera/rishabh/dyaplex/codec.py:142: UserWarning: Converting a tensor with requires_grad=True to a scalar may lead to unexpected behavior.
+Consider using tensor.detach() first. (Triggered internally at /Users/runner/work/pytorch/pytorch/torch/csrc/autograd/generated/python_variable_methods.cpp:821.)
+  log(f"  codec {part} it {it}: train {float(loss):.4f} held {held_loss:.4f} ppl {float(perplexity):.1f}")
+  codec upper it 100: train 0.3206 held 0.4225 ppl 182.0
+  codec upper it 200: train 0.2354 held 0.4114 ppl 180.6
+  codec upper it 300: train 0.1381 held 0.3138 ppl 251.0
+  codec upper it 400: train 0.1006 held 0.2348 ppl 349.4
+  codec upper it 500: train 0.0837 held 0.1975 ppl 411.8
+  codec upper it 600: train 0.0990 held 0.1744 ppl 408.9
+  codec hands it 100: train 0.3520 held 0.3284 ppl 404.1
+  codec hands it 200: train 0.2328 held 0.4373 ppl 265.1
+  codec hands it 300: train 0.1747 held 0.2943 ppl 235.1
+  codec hands it 400: train 0.1257 held 0.2218 ppl 297.4
+  codec hands it 500: train 0.1060 held 0.1906 ppl 374.7
+  codec hands it 600: train 0.0960 held 0.1778 ppl 334.3
+  codec lower_trans it 100: train 0.2286 held 0.7227 ppl 78.5
+  codec lower_trans it 200: train 0.1408 held 0.3950 ppl 185.7
+  codec lower_trans it 300: train 0.0785 held 0.3942 ppl 412.2
+  codec lower_trans it 400: train 0.0596 held 0.3074 ppl 435.1
+  codec lower_trans it 500: train 0.0452 held 0.2480 ppl 507.8
+  codec lower_trans it 600: train 0.0593 held 0.2337 ppl 501.0
+  codec face it 100: train 0.1853 held 0.1705 ppl 61.9
+  codec face it 200: train 0.1179 held 0.1519 ppl 392.4
+  codec face it 300: train 0.1118 held 0.1238 ppl 240.4
+  codec face it 400: train 0.0751 held 0.1033 ppl 305.9
+  codec face it 500: train 0.0615 held 0.0847 ppl 367.9
+  codec face it 600: train 0.0512 held 0.0775 ppl 403.2
+[PASS] codec: upper_held_recon_falls {"first": 0.4225323498249054, "best": 0.17437973618507385}
+[PASS] codec: hands_held_recon_falls {"first": 0.3284032940864563, "best": 0.17783871293067932}
+[PASS] codec: lower_trans_held_recon_falls {"first": 0.7226939797401428, "best": 0.2337082475423813}
+[PASS] codec: face_held_recon_falls {"first": 0.17048192024230957, "best": 0.07746563851833344}
+[PASS] codec: encoder_no_future_leak {"upper": {"codes_equal": true, "latent_max_diff": 0.0, "decoder_prefix_max_diff": 0.0}, "hands": {"codes_equal": true, "latent_max_diff": 0.0, "decoder_prefix_max_diff": 0.0}, "lower_trans": {"codes_equal": true, "latent_max_diff": 0.0, "d
+[PASS] codec: decoder_causal {"upper": 0.0, "hands": 0.0, "lower_trans": 0.0, "face": 0.0}
+[PASS] codec: batched_equals_incremental {"upper": {"codes_equal": true}, "hands": {"codes_equal": true}, "lower_trans": {"codes_equal": true}, "face": {"codes_equal": true}}
+[PASS] data: token_cache_T_by_22_uint16_in_band {"shapes": {"V00_S0080_I00000135_P0115": [2200, 22], "V00_S0080_I00000135_P0116": [2200, 22], "V00_S0152_I00000377_P0216": [2600, 22], "V00_S0152_I00000377_P0217": [2600, 22], "V00_S0255_I00000497_P0350": [2850, 22], "V00_S0255_I00000497_P0
+== 3. PersonaPlex taps
+[PASS] speech: teacher_forced_equals_streaming_all_32_layers {"layers": 32, "frames": 399, "max_abs": 6.67572021484375e-06, "rel": 3.679668338918418e-07, "per_layer_max": [1.9073486328125e-06, 1.9073486328125e-06, 1.9073486328125e-06, 1.9073486328125e-06, 1.9073486328125e-06, 2.384185791015625e-06, 2
+[PASS] speech: taps_do_not_change_outputs {"frames_compared": 58}
+== 4. motion tower
+[PASS] tower: 46_tokens_per_frame_and_eq2 {"window_frames": 22, "tokens": 1012}
+[PASS] tower: no_future_speech_or_motion_leak_untrained {"max_diff_past": 0.0, "max_diff_future_changed": 0.11114633083343506}
+  tower it 100: loss 5.703 ce 5.697 acc(train batch) 0.074 teacher-forced acc 0.054
+  tower it 200: loss 5.257 ce 5.250 acc(train batch) 0.093 teacher-forced acc 0.095
+  tower it 300: loss 4.668 ce 4.662 acc(train batch) 0.148 teacher-forced acc 0.157
+  tower it 400: loss 3.805 ce 3.798 acc(train batch) 0.271 teacher-forced acc 0.267
+  tower it 500: loss 3.221 ce 3.215 acc(train batch) 0.392 teacher-forced acc 0.401
+  tower it 600: loss 2.230 ce 2.225 acc(train batch) 0.562 teacher-forced acc 0.551
+  tower it 700: loss 1.431 ce 1.427 acc(train batch) 0.724 teacher-forced acc 0.711
+  tower it 800: loss 1.055 ce 1.050 acc(train batch) 0.831 teacher-forced acc 0.840
+[FAIL] tower: overfit_teacher_forced_token_acc_gt_0.95 {"token_acc": 0.8401342975206612, "examples": ["V00_S0080_I00000135:P0115->P0116", "V00_S0080_I00000135:P0116->P0115", "V00_S0152_I00000377:P0216->P0217", "V00_S0152_I00000377:P0217->P0216"], "iterations": 800}
+[PASS] tower: no_future_speech_or_motion_leak_trained {"max_diff_past": 0.0, "max_diff_future_changed": 11.016520500183105}
+== 5. streaming
+[PASS] streaming: kv_cache_equals_recompute {"frames": 20, "max_logit_diff": 8.344650268554688e-06}
+[PASS] streaming: past_outputs_unchanged_when_future_inputs_change {"compared_frames": 10, "later_frames_differ": true}
+[PASS] streaming: both_speaker_mode_in_band {}
+[PASS] streaming: agent_only_mode_in_band_and_partner_copied {}
+== 6. Samhita's rig
+[PASS] streaming: full_window_generation_in_band {"frames": 250}
+[PASS] sim: 27_commands_finite_and_in_range {"frames": 400, "channels": 27}
+[PASS] sim: jaw_open_correlates_with_agent_speech {"pearson_r": 0.03287518979281083, "reference_ground_truth_jaw_r": -0.12219667830241629, "video": "runs/dyaplex-e2e/rig/rig.mp4"}
+report: runs/dyaplex-e2e/report.json  passed=False
+.venv/bin/python -m dyaplex e2e --out runs/dyaplex-e2e  989.60s user 236.52s system 48% cpu 42:11.60 total
