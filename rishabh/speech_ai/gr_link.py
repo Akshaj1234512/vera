@@ -5,7 +5,7 @@ microphone and robot-driver processes can be written in any language.
 
 Producer -> G (``LiveServer``), one object per line::
 
-    {"source": "teacher",          "time_s": t, "values": [8 normalized channels], "valid": true}
+    {"source": "teacher",          "time_s": t, "values": [21 human channels, human.HUMAN_CHANNELS], "valid": true}
     {"source": "teacher_features", "time_s": t, "values": [f decoded DyaPlex features]}   # needs --teacher-map
     {"source": "states",           "time_s": t, "values": [d PersonaPlex state]}
     {"source": "audio",            "time_s": t, "values": [8 raw audio features]}          # see audio.AudioFrontend
@@ -18,11 +18,11 @@ means the clocks are out of sync; it is rejected and counted, never used.
 G <-> robot bridge (``NetworkRobot``)::
 
     bridge -> G: {"type": "hello", "embodiment": "physical" | "simulated", "name": "..."}  (once)
-    bridge -> G: {"type": "state", "position": [8 rad], "velocity": [8 rad/s]}              (>= 20 Hz)
-    G -> bridge: {"type": "target", "frame": k, "position": [8 rad]}                        (20 Hz)
+    bridge -> G: {"type": "state", "position": [27 joints], "velocity": [27]}              (>= 20 Hz)
+    G -> bridge: {"type": "target", "frame": k, "position": [27 joints]}                        (20 Hz)
     G -> bridge: {"type": "hold"}                                                           (stop / feedback lost)
 
-The bridge owns the vendor servo driver, maps the eight channels to actuators and
+The bridge owns the vendor servo driver, maps the 27 rig channels (embodiment.CHANNELS) to actuators and
 enforces firmware limits; G enforces the calibrated capability descriptor.
 """
 
@@ -215,8 +215,8 @@ class NetworkRobot(RobotInterface):
     def _send(self, message: dict) -> None:
         self.socket.sendall(json.dumps(message).encode() + b"\n")
 
-    def command(self, target_rad: np.ndarray) -> None:
-        self._send({"type": "target", "frame": self.frame, "position": np.asarray(target_rad, dtype=float).tolist()})
+    def command(self, target_q: np.ndarray) -> None:
+        self._send({"type": "target", "frame": self.frame, "position": np.asarray(target_q, dtype=float).tolist()})
         self.frame += 1
 
     def advance(self, seconds: float) -> None:

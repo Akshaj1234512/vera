@@ -17,11 +17,12 @@ import torch
 from .audio import FEATURE_NAMES, FRAME_S, normalized
 from .gr_data import (STATES_MAX_AGE_S, TEACHER_MAX_AGE_S, TimedSource, align, file_digest,
                       load_stream, window_at)
-from .gr_model import CHANNELS, SCALE_RAD, STEPS, capability, constrain_motion, normalized_limits
+from .gr_model import CHANNELS, HUMAN_DIM, SCALE, STEPS, capability, constrain_motion, normalized_limits
+from .gr_train import load_models
+from .human import RETARGET_NORM
 
 # Live audio frames come from another process with scheduling jitter; allow two frames of age.
 AUDIO_MAX_AGE_S = 0.1
-from .gr_train import load_models
 
 
 # --------------------------------------------------------------------------- #
@@ -41,7 +42,7 @@ class RobotInterface(ABC):
         """Measured [2, 8] position (rad) and velocity (rad/s)."""
 
     @abstractmethod
-    def command(self, target_rad: np.ndarray) -> None:
+    def command(self, target_q: np.ndarray) -> None:
         """Set an [8] position target to be reached by the end of the current 50 ms frame."""
 
     @abstractmethod
@@ -65,8 +66,8 @@ class KinematicRobot(RobotInterface):
     def state(self) -> np.ndarray:
         return np.stack([self.position, self.velocity]).astype(np.float32)
 
-    def command(self, target_rad: np.ndarray) -> None:
-        self.target = np.asarray(target_rad, dtype=float)
+    def command(self, target_q: np.ndarray) -> None:
+        self.target = np.asarray(target_q, dtype=float)
 
     def advance(self, seconds: float) -> None:
         step = np.clip((self.target - self.position) * self.lag, -self.limits[:, 3] * seconds,
@@ -101,11 +102,11 @@ class LiveInputs:
         self.time_s = np.round(np.arange(1, frames + 1) * FRAME_S, 6)
         self.state_dim = state_dim
         self.buffers = {"teacher": [], "audio": [], "states": []}
-        self.widths = {"teacher": len(CHANNELS), "audio": len(FEATURE_NAMES), "states": state_dim}
+        self.widths = {"teacher": HUMAN_DIM, "audio": len(FEATURE_NAMES), "states": state_dim}
         import threading
         self.lock = threading.Lock()
         # What G actually saw, per frame; written as the session's stream.npz.
-        self.seen_human = np.zeros((frames, len(CHANNELS)), dtype=np.float32)
+        self.seen_human = np.zeros((frames, HUMAN_DIM), dtype=np.float32)
         self.seen_valid = np.zeros(frames, dtype=np.float32)
         width = len(FEATURE_NAMES) + (state_dim + 1 if state_dim else 0)
         self.seen_context = np.zeros((frames, width), dtype=np.float32)
@@ -145,7 +146,7 @@ class LiveInputs:
         start = max(0, index - STEPS)
         frames = np.arange(start, index)
         query = self.time_s[frames]
-        human, valid = self._aligned("teacher", len(CHANNELS), query, boundary, TEACHER_MAX_AGE_S)
+        human, valid = self._aligned("teacher", HUMAN_DIM, query, boundary, TEACHER_MAX_AGE_S)
         self.seen_human[frames], self.seen_valid[frames] = human * valid[:, None], valid
         if index:
             last = np.array([self.time_s[index - 1]])
@@ -199,15 +200,34 @@ class GPolicy:
 
 
 class ProjectedPolicy:
-    """Baseline: replay the last 500 ms of projected DyaPlex motion within the robot's limits."""
+    """Baseline "projected DyaPlex": retarget each teacher frame onto the rig as it arrives.
+
+    Streams at 20 Hz with one frame (50 ms) of latency: at frame k it commands the fixed
+    retarget (human.RETARGET) of the newest teacher frame, limited by the capability
+    descriptor from the measured position. Disabled joints simply drop out; there is no
+    substitution. This is what driving the robot directly from DyaPlex would do.
+    """
     name = "projected-dyaplex"
+    streaming = True
     r = None
     context_dim = None
     digest = None
     metadata = {"labels": None}
 
+    def __init__(self):
+        self.retarget = torch.from_numpy(RETARGET_NORM)
+
+    def frame(self, history: np.ndarray, limits: torch.Tensor, position: np.ndarray) -> np.ndarray:
+        valid = np.flatnonzero(history[:, -1] > 0.5)
+        human = torch.from_numpy(history[valid[-1], :-1]) if len(valid) else torch.zeros(HUMAN_DIM)
+        target = (human @ self.retarget)[None, None]
+        return constrain_motion(target, limits, torch.from_numpy(position / SCALE)[None])[0, 0].numpy() * SCALE
+
     def __call__(self, history, context, limits, state):
-        return constrain_motion(history[:, :, :-1], limits, state[:, 0])
+        """Chunk form (used by tests and offline scoring): hold the newest retargeted frame."""
+        from .gr_model import hold_last_valid
+        target = (hold_last_valid(history) @ self.retarget)[:, None].expand(-1, STEPS, -1)
+        return constrain_motion(target, limits, state[:, 0])
 
 
 # --------------------------------------------------------------------------- #
@@ -219,6 +239,7 @@ class Session:
         self.limit_tensor = torch.from_numpy(normalized_limits(limits)[None])
         self.observer, self.labels = observer, labels
         self.measured = np.zeros((frames, len(CHANNELS)), dtype=np.float32)
+        self.reference = np.zeros((frames, len(CHANNELS)), dtype=np.float32)
         self.commanded = np.zeros((frames, len(CHANNELS)), dtype=np.float32)
         self.chunks = []
         self.aborted = None
@@ -232,21 +253,22 @@ class Session:
             # Cold start or no teacher motion in the last 500 ms: ease toward neutral.
             fallback = "cold_start" if index == 0 else "no_teacher_motion"
             target = constrain_motion(torch.zeros(1, STEPS, len(CHANNELS)), self.limit_tensor,
-                                      torch.from_numpy(state[None, 0] / SCALE_RAD))[0].numpy()
+                                      torch.from_numpy(state[None, 0] / SCALE))[0].numpy()
         else:
             fallback = None
             target = self.policy(torch.from_numpy(history[None]), torch.from_numpy(context[None]),
-                                 self.limit_tensor, torch.from_numpy((state / SCALE_RAD)[None]))[0].numpy()
-        self.chunks.append({"start_s": round(index * FRAME_S, 6), "initial_state_rad": state.tolist(),
+                                 self.limit_tensor, torch.from_numpy((state / SCALE)[None]))[0].numpy()
+        self.chunks.append({"start_s": round(index * FRAME_S, 6), "initial_state_q": state.tolist(),
                             "inference_ms": round((perf_counter() - started) * 1000, 3),
                             "teacher_frames_valid": int(history[:, -1].sum()), "fallback": fallback,
                             "context": context})
-        return target[:count] * SCALE_RAD
+        return target[:count] * SCALE
 
     def truncate(self, frames: int, reason: str) -> None:
         self.aborted = {"at_frame": frames, "at_s": round(frames * FRAME_S, 3), "reason": reason}
         self.frames = frames
         self.measured, self.commanded = self.measured[:frames], self.commanded[:frames]
+        self.reference = self.reference[:frames]
         self.chunks = [chunk for chunk in self.chunks if round(chunk["start_s"] / FRAME_S) < frames]
 
     @torch.inference_mode()
@@ -263,7 +285,7 @@ class Session:
             if self.observer is None or len(motion) < STEPS or chunk["fallback"] == "cold_start":
                 chunk["r_probabilities_on_realized_motion"] = None
                 continue
-            logits = self.observer(torch.from_numpy((motion / SCALE_RAD)[None]),
+            logits = self.observer(torch.from_numpy((motion / SCALE)[None]),
                                    torch.from_numpy(chunk["context"][None]), self.limit_tensor)
             chunk["r_probabilities_on_realized_motion"] = dict(zip(self.labels, logits[0].softmax(0).tolist()))
 
@@ -288,13 +310,24 @@ def run_session(session: Session, robot: RobotInterface, feed: FileFeed | None =
             late = pacer.wait(boundary) if pacer is not None else 0.0
             if feed is not None:
                 feed.deliver(boundary)
+            streaming = getattr(session.policy, "streaming", False)
             if index % STEPS == 0:
                 session.score(index)
                 anchor = index
                 target = session.plan(index, robot.state())
                 session.chunks[-1]["boundary_late_ms"] = round(late, 3)
-            session.commanded[index] = target[index - anchor]
-            robot.command(target[index - anchor])
+            if streaming and index % STEPS:
+                # Per-frame baseline: newest teacher frame, from the measured position.
+                history, _ = session.inputs.window(index)
+                position = robot.state()[0]
+                command = session.policy.frame(history, session.limit_tensor, position)
+                session.reference[index] = position
+            else:
+                command = target[index - anchor]
+                session.reference[index] = (np.asarray(session.chunks[-1]["initial_state_q"])[0]
+                                            if index == anchor else session.commanded[index - 1])
+            session.commanded[index] = command
+            robot.command(command)
             robot.advance(FRAME_S)
             if pacer is not None:
                 pacer.wait(boundary + FRAME_S)
@@ -317,11 +350,10 @@ def motion_metrics(session: Session) -> dict:
     commanded, measured = session.commanded, session.measured
     # Each chunk is planned from the measured position at its boundary (q_t), so the
     # speed check anchors every chunk there rather than at the previous command.
-    previous = np.vstack([commanded[:1], commanded[:-1]])
-    for chunk in session.chunks:
-        start = np.clip(np.asarray(chunk["initial_state_rad"])[0], low, high)  # as constrain_motion does
-        previous[round(chunk["start_s"] / FRAME_S)] = start
-    step = commanded - previous
+    # Each command is limited relative to its reference: the measured position where the
+    # policy re-planned (every chunk start for G, every frame for the streaming baseline),
+    # otherwise the previous command. Clipped into range as constrain_motion does.
+    step = commanded - np.clip(session.reference, low, high)
     tol = 1e-5
     velocity = np.diff(measured, axis=0) / FRAME_S
     accel = np.diff(velocity, axis=0)
@@ -332,9 +364,9 @@ def motion_metrics(session: Session) -> dict:
     return {
         "commanded_within_position_limits": bool(((commanded >= low - tol) & (commanded <= high + tol)).all()),
         "commanded_within_speed_limits": bool((np.abs(step) <= speed * FRAME_S + tol).all()),
-        "disabled_channels_max_abs_measured_rad": float(np.abs(measured[:, enabled == 0]).max(initial=0)),
+        "disabled_channels_max_abs_measured": float(np.abs(measured[:, enabled == 0]).max(initial=0)),
         "measured_outside_limits_frames": int(((measured < low - 0.01) | (measured > high + 0.01)).any(1).sum()),
-        "mean_abs_tracking_error_rad": dict(zip(CHANNELS, np.abs(commanded - measured).mean(0).round(5).tolist())),
+        "mean_abs_tracking_error": dict(zip(CHANNELS, np.abs(commanded - measured).mean(0).round(5).tolist())),
         "mean_sq_accel_inside_chunks": float((accel[inside] ** 2).mean()) if len(inside) else None,
         "mean_sq_accel_at_boundaries": float((accel[boundary] ** 2).mean()) if boundary else None,
         "inference_ms": {"mean": float(timings.mean()), "max": float(timings.max())},
@@ -352,8 +384,8 @@ def write_session(session: Session, output: Path, meta: dict) -> dict:
     chunks = [{k: v for k, v in c.items() if k != "context"} for c in session.chunks]
     meta = {**meta, "capabilities": dict(zip(CHANNELS, session.limits.tolist())), "aborted": session.aborted}
     np.savez_compressed(output / "realized-motion.npz", time_s=np.round(np.arange(1, session.frames + 1) * FRAME_S, 6),
-                        channels=np.array(CHANNELS), robot_rad=session.measured, commanded_rad=session.commanded,
-                        initial_state_rad=np.array([c["initial_state_rad"] for c in session.chunks], dtype=np.float32),
+                        channels=np.array(CHANNELS), robot_q=session.measured, commanded_q=session.commanded,
+                        initial_state_q=np.array([c["initial_state_q"] for c in session.chunks], dtype=np.float32),
                         chunk_start_s=np.array([c["start_s"] for c in session.chunks]),
                         inference_ms=np.array([c["inference_ms"] for c in session.chunks]),
                         session=np.array(json.dumps(meta)))

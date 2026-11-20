@@ -5,3 +5,6 @@ data/seamless/
 data/vico/
 data/models/
 .DS_Store
+# Seamless Interaction downloads and trials derived from them (regenerate with gr-seamless / gr-dataset)
+data/seamless-motion/
+data/gr-real/

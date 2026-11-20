@@ -4,7 +4,9 @@ import argparse
 import json
 from pathlib import Path
 
-PROFILE_CHOICES = ("full", "fixed-neck-pitch", "fixed-eyes")
+from .embodiment import PROFILES
+
+PROFILE_CHOICES = tuple(PROFILES)
 
 
 def _print(value) -> None:
@@ -37,29 +39,53 @@ def add_commands(commands: argparse._SubParsersAction) -> None:
         parser.add_argument("--video", type=Path)
         parser.add_argument("--title")
 
-    def fixture(args):
-        from .gr_fixtures import make_fixtures
-        _print(make_fixtures(args.out, args.groups, args.seed, args.state_dim))
+    def seamless(args):
+        from .seamless import prepare as fetch
+        _print(fetch(args.label, args.split, args.count, args.out, args.seed, args.include))
 
-    p = command("gr-fixture", "generate SYNTHETIC trials and votes for pipeline checks", fixture)
-    p.add_argument("--out", type=Path, default=Path("data/gr-synthetic"))
-    p.add_argument("--groups", type=int, default=16)
-    p.add_argument("--seed", type=int, default=31)
-    p.add_argument("--state-dim", type=int, default=0, help="append synthetic PersonaPlex columns of this width")
+    p = command("gr-seamless", "download real human motion + audio (Seamless Interaction) as teacher streams",
+                seamless)
+    p.add_argument("--label", choices=("naturalistic", "improvised"), default="naturalistic")
+    p.add_argument("--split", choices=("train", "dev", "test"), default="dev")
+    p.add_argument("--count", type=int, default=30, help="interactions (one per session)")
+    p.add_argument("--include", nargs="*", default=[], help="interaction keys that must be included")
+    p.add_argument("--seed", type=int, default=5)
+    p.add_argument("--out", type=Path, required=True)
 
-    def teacher_script(args):
-        from .gr_fixtures import listener_teacher
-        _print(listener_teacher(args.input, args.agent, args.stereo, args.out))
+    def dataset(args):
+        from .gr_dataset import build
+        _print(build(args.streams, args.out, args.seed))
 
-    p = command("gr-teacher-script", "write a SCRIPTED stand-in teacher (not DyaPlex) from audio", teacher_script)
-    audio_inputs(p)
+    p = command("gr-dataset", "build G/R trials from real motion streams (votes: SYNTHETIC rule observer)", dataset)
+    p.add_argument("streams", type=Path, nargs="+", help="streams.json from gr-seamless")
+    p.add_argument("--seed", type=int, default=3)
+    p.add_argument("--out", type=Path, required=True)
+
+    def demo(args):
+        from .demo import compose
+        _print(compose(args.stream, args.partner_wav, args.agent_wav, args.source_video, args.keypoints,
+                       args.start_s, args.duration_s, args.g, args.r, args.out, args.label, args.locked))
+
+    p = command("gr-demo", "render a labeled grid: real human, projected DyaPlex and G on the rig", demo)
+    p.add_argument("stream", type=Path, help="stream.npz of a held-out participant (from gr-seamless)")
+    p.add_argument("--partner-wav", type=Path, required=True)
+    p.add_argument("--agent-wav", type=Path, required=True)
+    p.add_argument("--source-video", type=Path, required=True, help="the participant's Seamless video")
+    p.add_argument("--keypoints", type=Path, required=True, help="Seamless boxes_and_keypoints/keypoints .npy")
+    p.add_argument("--start-s", type=float, required=True)
+    p.add_argument("--duration-s", type=float, default=40.0)
+    p.add_argument("--g", type=Path, required=True)
+    p.add_argument("--r", type=Path)
+    p.add_argument("--locked", choices=PROFILE_CHOICES, default="fixed-neck-pitch")
+    p.add_argument("--label", nargs="+", default=["Human participant", "Seamless Interaction", "measured motion",
+                                                   "= teacher input M_h"], help="short lines (240 px column)")
     p.add_argument("--out", type=Path, required=True)
 
     def fit_map(args):
         from .gr_data import fit_teacher_map
         _print(fit_teacher_map(args.pairs, args.out, args.seed))
 
-    p = command("gr-fit-map", "fit decoded DyaPlex features to the eight channels on held-out clips", fit_map)
+    p = command("gr-fit-map", "fit decoded DyaPlex features (e.g. FLAME) to the 21 human-motion channels", fit_map)
     p.add_argument("pairs", type=Path, help="JSON list of {id, group, features, reference}")
     p.add_argument("--out", type=Path, required=True, help="calibration.npz for --teacher-map")
     p.add_argument("--seed", type=int, default=7)
@@ -129,12 +155,23 @@ def add_commands(commands: argparse._SubParsersAction) -> None:
     p.add_argument("--out", type=Path, default=Path("runs/gr-training"))
     p.add_argument("--seed", type=int, default=17)
     p.add_argument("--epochs", type=int, default=36)
-    p.add_argument("--refine-epochs", type=int, default=8)
+    p.add_argument("--refine-epochs", type=int, default=20)
     p.add_argument("--demo-weight", type=float, default=1.0, help="lambda_demo")
-    p.add_argument("--meaning-weight", type=float, default=0.04, help="lambda_meaning")
+    p.add_argument("--meaning-weight", type=float, default=3.0, help="lambda_meaning (selected on validation groups)")
     p.add_argument("--smooth-weight", type=float, default=0.15, help="lambda_temporal")
     p.add_argument("--residual", action="store_true", help="M_r = M_direct + learned adjustment")
     p.add_argument("--imitation-only", action="store_true", help="bootstrap G from approved demonstrations")
+
+    def score_models(args):
+        from .gr_train import score
+        report = score(args.manifest, args.g, args.r, args.out)
+        _print({"macro_p_intent": report["macro_p_intent"], "observer": report["observer"]})
+
+    p = command("gr-score", "evaluate frozen G and R checkpoints on a held-out manifest", score_models)
+    p.add_argument("manifest", type=Path)
+    p.add_argument("--g", type=Path, required=True)
+    p.add_argument("--r", type=Path, required=True)
+    p.add_argument("--out", type=Path, required=True)
 
     def replay(args):
         from .gr_runtime import replay as run

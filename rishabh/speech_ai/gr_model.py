@@ -6,21 +6,11 @@ from torch import nn
 
 from .audio import FRAME_S
 
-STEPS = 10
-CHANNELS = (
-    "neck_yaw", "neck_pitch", "jaw", "eye_yaw",
-    "eyelid_l", "eyelid_r", "brow_l", "brow_r",
-)
-ACTUATORS = {name: (name,) for name in CHANNELS}
-ACTUATORS["eye_yaw"] = ("eye_yaw_l", "eye_yaw_r")
-SCALE_RAD = np.array([0.25, 0.25, 0.30, 0.40, 0.55, 0.55, 0.025, 0.025], dtype=np.float32)
-# Each row holds enabled, lower/upper position in radians, and radians per second.
-SIM_LIMITS = np.array([
-    [1, -0.25, 0.25, 1.20], [1, -0.20, 0.24, 1.60], [1, 0, 0.32, 2.00],
-    [1, -0.38, 0.38, 2.30], [1, 0, 0.55, 5.00], [1, 0, 0.55, 5.00],
-    [1, -0.015, 0.030, 0.24], [1, -0.015, 0.030, 0.24],
-], dtype=np.float32)
-PROFILES = {"full": (), "fixed-neck-pitch": ("neck_pitch",), "fixed-eyes": ("eye_yaw",)}
+from .embodiment import CHANNELS, PROFILES, SCALE, SIM_LIMITS
+from .human import HUMAN_CHANNELS, RETARGET_NORM
+
+STEPS = 10  # 500 ms at 20 Hz
+HUMAN_DIM, ROBOT_DIM = len(HUMAN_CHANNELS), len(CHANNELS)
 
 
 def capability(profile: str, custom: dict | None = None) -> np.ndarray:
@@ -31,7 +21,7 @@ def capability(profile: str, custom: dict | None = None) -> np.ndarray:
             limits[CHANNELS.index(name)] = 0
     else:
         if set(custom) != set(CHANNELS):
-            raise ValueError("Capability calibration must cover all eight channels")
+            raise ValueError(f"Capability calibration must cover all {len(CHANNELS)} rig channels")
         limits = np.array([custom[name] for name in CHANNELS], dtype=np.float32)
     if limits.shape != (len(CHANNELS), 4) or not np.isfinite(limits).all():
         raise ValueError("Each channel needs enabled, minimum, maximum and speed")
@@ -45,7 +35,7 @@ def capability(profile: str, custom: dict | None = None) -> np.ndarray:
 
 def normalized_limits(limits: np.ndarray) -> np.ndarray:
     result = limits.copy()
-    result[:, 1:] /= SCALE_RAD[:, None]
+    result[:, 1:] /= SCALE[:, None]
     return result
 
 
@@ -61,44 +51,61 @@ def constrain_motion(target: torch.Tensor, limits: torch.Tensor, position: torch
     return torch.stack(result, dim=1)
 
 
-class Generator(nn.Module):
-    """G maps a causal human-motion history and current context to a robot chunk."""
+def hold_last_valid(human: torch.Tensor) -> torch.Tensor:
+    """The most recent valid human frame [B, HUMAN_DIM] (zeros when none is valid)."""
+    valid = human[:, :, -1] > 0.5
+    index = torch.where(valid, torch.arange(human.shape[1], device=human.device), -1).max(dim=1).values
+    frame = human[torch.arange(len(human)), index.clamp_min(0), :-1]
+    return frame * (index >= 0)[:, None]
 
-    def __init__(self, context_dim: int, width: int = 48, *, residual: bool = False):
+
+class Generator(nn.Module):
+    """G: M_r = G(M_h, x_t, b_m, q_t), a small causal transformer over the 500 ms history.
+
+    Input M_h is [B, 10, HUMAN_DIM + 1] (human channels + validity). Output is the next
+    500 ms of robot motion [B, 10, ROBOT_DIM] in normalized units, projected onto the
+    capability descriptor. With ``residual`` the network predicts an adjustment to the
+    projected teacher motion M_direct (the fixed retarget of the latest human frame).
+    """
+
+    def __init__(self, context_dim: int, width: int = 64, *, residual: bool = False):
         super().__init__()
-        channels = len(CHANNELS)
         self.residual = residual
-        self.motion = nn.Linear(channels + 1, width)
-        self.conditioning = nn.Linear(context_dim + channels * 6, width)
+        self.motion = nn.Linear(HUMAN_DIM + 1, width)
+        self.conditioning = nn.Linear(context_dim + ROBOT_DIM * 6, width)
         self.position = nn.Parameter(torch.randn(1, STEPS, width) * 0.02)
         layer = nn.TransformerEncoderLayer(width, 4, 2 * width, dropout=0.0, batch_first=True)
         self.encoder = nn.TransformerEncoder(layer, num_layers=2)
-        self.output = nn.Linear(width, STEPS * channels)
+        self.output = nn.Linear(width, STEPS * ROBOT_DIM)
         # Start near the neutral pose so the output starts inside the slew bounds.
         nn.init.normal_(self.output.weight, std=0.003)
         nn.init.zeros_(self.output.bias)
         self.register_buffer("causal_mask", torch.ones(STEPS, STEPS, dtype=torch.bool).triu(1),
                              persistent=False)
+        self.register_buffer("retarget", torch.from_numpy(RETARGET_NORM), persistent=False)
+
+    def direct(self, human: torch.Tensor) -> torch.Tensor:
+        """M_direct: projected teacher motion, the latest human frame retargeted and held."""
+        return (hold_last_valid(human) @ self.retarget)[:, None].expand(-1, STEPS, -1)
 
     def forward(self, human, context, limits, state):
         conditioning = self.conditioning(torch.cat([context, limits.flatten(1), state.flatten(1)], dim=1))
         inputs = self.motion(human) + self.position + conditioning[:, None]
         encoded = self.encoder(inputs, mask=self.causal_mask)
-        target = self.output(encoded[:, -1]).reshape(-1, STEPS, len(CHANNELS)).tanh() * 1.5
+        target = self.output(encoded[:, -1]).reshape(-1, STEPS, ROBOT_DIM).tanh() * 1.5
         if self.residual:
-            target = human[:, :, :-1] + 0.5 * target
+            target = self.direct(human) + 0.5 * target
         return constrain_motion(target, limits, state[:, 0])
 
 
 class Observer(nn.Module):
-    """R predicts observer vote proportions from realized motion and context."""
+    """R predicts observer vote proportions from realized motion, capabilities and context."""
 
     def __init__(self, context_dim: int, labels: int):
         super().__init__()
-        motion_dim = STEPS * len(CHANNELS)
         self.network = nn.Sequential(
-            nn.Linear(motion_dim + context_dim + len(CHANNELS) * 4, 64),
-            nn.LayerNorm(64), nn.GELU(), nn.Linear(64, 48), nn.GELU(), nn.Linear(48, labels),
+            nn.Linear(STEPS * ROBOT_DIM + context_dim + ROBOT_DIM * 4, 128),
+            nn.LayerNorm(128), nn.GELU(), nn.Linear(128, 64), nn.GELU(), nn.Linear(64, labels),
         )
 
     def forward(self, motion, context, limits):

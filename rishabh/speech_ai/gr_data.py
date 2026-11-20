@@ -13,7 +13,8 @@ from pathlib import Path
 import numpy as np
 
 from .audio import FEATURE_NAMES, FRAME_S, extract, load_tracks, normalized
-from .gr_model import CHANNELS, SCALE_RAD, STEPS, capability, normalized_limits
+from .gr_model import CHANNELS, HUMAN_DIM, ROBOT_DIM, SCALE, STEPS, capability, normalized_limits
+from .human import HUMAN_CHANNELS
 
 TEACHER_MAX_AGE_S = 0.15
 STATES_MAX_AGE_S = 0.25
@@ -83,10 +84,11 @@ def load_manifest(path: Path) -> tuple[list[str], list[Trial]]:
     if (not isinstance(labels, list) or len(labels) < 2 or not all(isinstance(x, str) and x for x in labels)
             or len(labels) != len(set(labels))):
         raise ValueError("Provide at least two unique interpretation labels")
-    channels = len(CHANNELS)
     trials = []
     seen = set()
     pair_groups: dict[str, str] = {}
+    files: dict[str, dict] = {}
+    limit_cache: dict[str, np.ndarray] = {}
     for row in data["trials"]:
         trial_id, group, origin = (row[key] for key in ("id", "group", "origin"))
         if not all(isinstance(x, str) and x for x in (trial_id, group, origin)) or trial_id in seen:
@@ -98,18 +100,26 @@ def load_manifest(path: Path) -> tuple[list[str], list[Trial]]:
             if pair_groups.setdefault(pair, group) != group:
                 raise ValueError(f"{trial_id}: paired trials of {pair!r} must share one group")
         profile = row.get("profile", "full" if row.get("capabilities") is None else "custom")
-        limits = capability(profile, row.get("capabilities"))
-        with np.load(path.parent / row["file"], allow_pickle=False) as payload:
-            human = array(payload, "human", (STEPS, channels))
-            valid = array(payload, "human_valid", (STEPS,)) if "human_valid" in payload else np.ones(STEPS)
-            if (np.abs(human) > 1).any() or not np.isin(valid, [0, 1]).all():
-                raise ValueError(f"{trial_id}: human motion needs normalized channels and binary validity")
-            human = np.column_stack([human * valid[:, None], valid]).astype(np.float32)
-            context = array(payload, "context")
-            if context.ndim != 1 or not len(context):
-                raise ValueError(f"{trial_id}: context must be a nonempty vector")
-            state = array(payload, "state_rad", (2, channels)) / SCALE_RAD
-            robot = array(payload, "robot_rad", (STEPS, channels)) if "robot_rad" in payload else None
+        key = profile if row.get("capabilities") is None else json.dumps(row["capabilities"], sort_keys=True)
+        if key not in limit_cache:
+            limit_cache[key] = normalized_limits(capability(profile, row.get("capabilities")))
+        if row["file"] not in files:
+            with np.load(path.parent / row["file"], allow_pickle=False) as payload:
+                files[row["file"]] = {k: payload[k] for k in payload.files}
+        payload = files[row["file"]]
+        if "index" in row:
+            # A stacked file holds many trials along the first axis.
+            payload = {k: v[row["index"]] for k, v in payload.items()}
+        human = array(payload, "human", (STEPS, HUMAN_DIM))
+        valid = array(payload, "human_valid", (STEPS,)) if "human_valid" in payload else np.ones(STEPS)
+        if (np.abs(human) > 1 + 1e-6).any() or not np.isin(valid, [0, 1]).all():
+            raise ValueError(f"{trial_id}: human motion needs normalized channels and binary validity")
+        human = np.column_stack([human * valid[:, None], valid]).astype(np.float32)
+        context = array(payload, "context")
+        if context.ndim != 1 or not len(context):
+            raise ValueError(f"{trial_id}: context must be a nonempty vector")
+        state = array(payload, "state_q", (2, ROBOT_DIM)) / SCALE
+        robot = array(payload, "robot_q", (STEPS, ROBOT_DIM)) if "robot_q" in payload else None
 
         votes = row.get("votes", {})
         demonstration = row.get("demonstration", False)
@@ -118,15 +128,15 @@ def load_manifest(path: Path) -> tuple[list[str], list[Trial]]:
         if any(not isinstance(n, int) or isinstance(n, bool) or n <= 0 for n in votes.values()):
             raise ValueError(f"{trial_id}: each observer vote count must be a positive integer")
         if (demonstration or votes) and robot is None:
-            raise ValueError(f"{trial_id}: demonstrations and observer votes require robot_rad")
+            raise ValueError(f"{trial_id}: demonstrations and observer votes require robot_q")
         distribution = np.array([votes.get(label, 0) for label in labels], dtype=np.float32)
         raters = int(distribution.sum())
         distribution /= max(float(distribution.sum()), 1)
         intent = labels.index(row["intent"]) if row.get("intent") is not None else -1
         if robot is None:
-            robot = np.zeros((STEPS, channels), dtype=np.float32)
+            robot = np.zeros((STEPS, ROBOT_DIM), dtype=np.float32)
         trials.append(Trial(trial_id, group, origin, profile, human, context, state,
-                            normalized_limits(limits), robot / SCALE_RAD, demonstration, distribution,
+                            limit_cache[key], robot / SCALE, demonstration, distribution,
                             intent, raters, pair, row.get("condition")))
     if not trials or len({trial.context.shape for trial in trials}) != 1:
         raise ValueError("Use a nonempty manifest with consistent context dimensions")
@@ -189,11 +199,11 @@ def teacher_source(path: Path) -> str:
 def load_teacher(path: Path, teacher_map: Path | None, offset_s: float = 0.0) -> TimedSource:
     with np.load(path, allow_pickle=False) as data:
         if teacher_map is None:
-            if "channels" not in data or tuple(data["channels"].tolist()) != CHANNELS:
-                raise ValueError(f"Teacher channels must be named and ordered as {CHANNELS}")
+            if "channels" not in data or tuple(data["channels"].tolist()) != HUMAN_CHANNELS:
+                raise ValueError(f"Teacher channels must be named and ordered as {HUMAN_CHANNELS}")
             human = array(data, "human")
-            if human.ndim != 2 or human.shape[1] != len(CHANNELS) or (np.abs(human) > 1).any():
-                raise ValueError("The teacher motion must be normalized to [-1, 1] with shape [frames, 8]")
+            if human.ndim != 2 or human.shape[1] != HUMAN_DIM or (np.abs(human) > 1 + 1e-6).any():
+                raise ValueError(f"The teacher motion must be normalized to [-1, 1] with shape [frames, {HUMAN_DIM}]")
         else:
             human = project_features(array(data, "features"), teacher_map)
         return timed_source(data, human, offset_s, str(path))
@@ -203,8 +213,8 @@ def project_features(decoded: np.ndarray, teacher_map: Path) -> np.ndarray:
     if decoded.ndim != 2 or not decoded.shape[1]:
         raise ValueError("The decoded export must contain one feature vector per frame")
     with np.load(teacher_map, allow_pickle=False) as calibration:
-        weights = array(calibration, "weights", (decoded.shape[1], len(CHANNELS)))
-        bias = array(calibration, "bias", (len(CHANNELS),))
+        weights = array(calibration, "weights", (decoded.shape[1], HUMAN_DIM))
+        bias = array(calibration, "bias", (HUMAN_DIM,))
         mean = array(calibration, "feature_mean", (decoded.shape[1],)) if "feature_mean" in calibration else 0
         scale = array(calibration, "feature_scale", (decoded.shape[1],)) if "feature_scale" in calibration else 1
     return np.clip(((decoded - mean) / scale) @ weights + bias, -1, 1).astype(np.float32)
@@ -278,7 +288,7 @@ def load_stream(path: Path) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         times = clock(data)
         if not np.allclose(times, np.arange(1, len(times) + 1) * FRAME_S, atol=1e-7, rtol=0):
             raise ValueError("The stream time_s must start at 0.05 and advance by 0.05 seconds")
-        human = array(data, "human", (len(times), len(CHANNELS)))
+        human = array(data, "human", (len(times), HUMAN_DIM))
         valid = array(data, "human_valid", (len(times),))
         context = array(data, "context")
     if not np.isin(valid, [0, 1]).all() or (np.abs(human) > 1).any():
@@ -313,8 +323,8 @@ def _recording(stream: Path, realized: Path):
                 or tuple(data["channels"].tolist()) != CHANNELS):
             raise ValueError("Realized robot samples must match the stream clock and channels")
         starts = clock(data, "chunk_start_s")
-        states = array(data, "initial_state_rad", (len(starts), 2, len(CHANNELS)))
-        motion = array(data, "robot_rad", (len(times), len(CHANNELS)))
+        states = array(data, "initial_state_q", (len(starts), 2, len(CHANNELS)))
+        motion = array(data, "robot_q", (len(times), len(CHANNELS)))
         meta = json.loads(str(data["session"])) if "session" in data else {}
     return times, human, context, starts, states, motion, meta
 
@@ -324,7 +334,7 @@ def _write_trial(out: Path, human, context, index, state, motion) -> None:
     out.parent.mkdir(parents=True, exist_ok=True)
     with out.open("wb") as file:
         np.savez_compressed(file, human=history[:, :-1], human_valid=history[:, -1],
-                            context=latest, state_rad=state, robot_rad=motion[index:index + STEPS])
+                            context=latest, state_q=state, robot_q=motion[index:index + STEPS])
 
 
 def pack_trial(stream: Path, realized: Path, start_s: float, out: Path) -> None:
@@ -374,11 +384,11 @@ def pack_recording(stream: Path, realized: Path, out_dir: Path, group: str | Non
 
 
 # --------------------------------------------------------------------------- #
-# DyaPlex decoded-feature -> eight-channel calibration
+# DyaPlex decoded-feature (e.g. FLAME) -> human-channel calibration
 # --------------------------------------------------------------------------- #
 def fit_teacher_map(pairs_path: Path, out: Path, seed: int = 7,
                     ridges: tuple[float, ...] = (1e-4, 1e-3, 1e-2, 1e-1, 1, 10)) -> dict:
-    """Fit a ridge projection from decoded DyaPlex features to the eight robot-facing channels.
+    """Fit a ridge projection from decoded DyaPlex features to the 21 human-motion channels (human.HUMAN_CHANNELS).
 
     ``pairs_path`` lists clips: {"id", "group", "features": NPZ(time_s, features),
     "reference": NPZ(time_s, channels, human)}. Reference motion is interpolated onto
@@ -391,12 +401,12 @@ def fit_teacher_map(pairs_path: Path, out: Path, seed: int = 7,
             times, features = clock(data), array(data, "features")
         with np.load(pairs_path.parent / row["reference"], allow_pickle=False) as data:
             ref_times = clock(data)
-            if tuple(data["channels"].tolist()) != CHANNELS:
-                raise ValueError(f"{row['id']}: reference channels must be {CHANNELS}")
-            reference = array(data, "human", (len(ref_times), len(CHANNELS)))
+            if tuple(data["channels"].tolist()) != HUMAN_CHANNELS:
+                raise ValueError(f"{row['id']}: reference channels must be {HUMAN_CHANNELS}")
+            reference = array(data, "human", (len(ref_times), HUMAN_DIM))
         inside = (times >= ref_times[0]) & (times <= ref_times[-1])
         target = np.column_stack([np.interp(times[inside], ref_times, reference[:, k])
-                                  for k in range(len(CHANNELS))])
+                                  for k in range(HUMAN_DIM)])
         clips.append(type("Clip", (), {"id": row["id"], "group": row["group"],
                                        "x": features[inside], "y": target})())
     if len({clip.x.shape[1] for clip in clips}) != 1:
@@ -422,8 +432,8 @@ def fit_teacher_map(pairs_path: Path, out: Path, seed: int = 7,
         error = predict(params, x) - y
         variance = ((y - y.mean(0)) ** 2).mean(0)
         r2 = 1 - (error ** 2).mean(0) / np.where(variance > 1e-9, variance, np.nan)
-        return {"mae": dict(zip(CHANNELS, np.abs(error).mean(0).round(4).tolist())),
-                "r2": dict(zip(CHANNELS, [None if not np.isfinite(v) else round(float(v), 4) for v in r2])),
+        return {"mae": dict(zip(HUMAN_CHANNELS, np.abs(error).mean(0).round(4).tolist())),
+                "r2": dict(zip(HUMAN_CHANNELS, [None if not np.isfinite(v) else round(float(v), 4) for v in r2])),
                 "frames": int(len(x))}
 
     scored = [(float(((predict(solve(r), x_valid) - y_valid) ** 2).mean()), r) for r in ridges]

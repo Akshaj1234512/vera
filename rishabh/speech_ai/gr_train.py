@@ -10,9 +10,10 @@ import torch.nn.functional as F
 
 from .audio import FRAME_S
 from .gr_data import Trial, file_digest, load_manifest, split_groups
-from .gr_model import CHANNELS, PROFILES, SCALE_RAD, Generator, Observer, capability, constrain_motion
+from .gr_model import CHANNELS, PROFILES, SCALE, Generator, Observer, capability, constrain_motion, hold_last_valid
+from .human import RETARGET_NORM
 
-CHECKPOINT_VERSION = 1
+CHECKPOINT_VERSION = 2  # v2: 21-channel human input, 27-channel Samhita rig output
 
 
 def batch(trials: list[Trial]) -> dict[str, torch.Tensor]:
@@ -31,7 +32,7 @@ def observation(model: Observer, motion: torch.Tensor, data: dict[str, torch.Ten
 def imitation_error(motion: torch.Tensor, data: dict[str, torch.Tensor], *, absolute: bool = False) -> torch.Tensor:
     mask = data["limits"][:, None, :, 0] * data["demonstration"][:, None, None]
     delta = motion - data["robot"]
-    error = delta.abs() * torch.as_tensor(SCALE_RAD) if absolute else delta.square()
+    error = delta.abs() * torch.as_tensor(SCALE) if absolute else delta.square()
     return (error * mask).sum() / (mask.sum() * motion.shape[1]).clamp_min(1)
 
 
@@ -55,7 +56,7 @@ def fit(model, train, valid, loss_fn, epochs: int, seed: int, learning_rate: flo
     best = deepcopy(model.state_dict())
     for _ in range(epochs):
         model.train()
-        for ids in torch.randperm(len(train["context"]), generator=random).split(48):
+        for ids in torch.randperm(len(train["context"]), generator=random).split(256):
             optimizer.zero_grad(set_to_none=True)
             value = loss_fn(model, {key: values[ids] for key, values in train.items()})
             value.backward()
@@ -94,13 +95,19 @@ def observer_result(model, data):
             "majority_vote_accuracy": float(correct.float().mean()), "trials": len(correct)}
 
 
+def projected(data: dict[str, torch.Tensor]) -> torch.Tensor:
+    """The projected-DyaPlex baseline in chunk form: newest human frame retargeted, held, constrained."""
+    target = (hold_last_valid(data["human"]) @ torch.from_numpy(RETARGET_NORM))[:, None].expand(-1, 10, -1)
+    return constrain_motion(target, data["limits"], data["state"][:, 0])
+
+
 def generator_result(motion: torch.Tensor, observer: Observer, data: dict[str, torch.Tensor]) -> dict:
     logits = observation(observer, motion, data)
     labeled = data["intent"] >= 0
     intended = data["intent"][labeled]
     probabilities = logits[labeled].softmax(dim=1).gather(1, intended[:, None]).flatten()
     return {
-        "demonstration_mae_rad": (float(imitation_error(motion, data, absolute=True))
+        "demonstration_mae": (float(imitation_error(motion, data, absolute=True))
                                   if data["demonstration"].any() else None),
         "observer_mean_intended_probability": float(probabilities.mean()) if len(intended) else None,
         "observer_intended_top1": (float((logits[labeled].argmax(dim=1) == intended).float().mean())
@@ -168,7 +175,7 @@ def train(manifest: Path, output: Path, seed: int, epochs: int, refine_epochs: i
     if imitation_only:
         with torch.no_grad():
             test = demonstrated["test"]
-            report["demonstration_test_mae_rad"] = float(
+            report["demonstration_test_mae"] = float(
                 imitation_error(generator_output(generator, test), test, absolute=True))
         write_results(output, report, metadata, models)
         return report
@@ -197,12 +204,12 @@ def train(manifest: Path, output: Path, seed: int, epochs: int, refine_epochs: i
 
     with torch.no_grad():
         test = optimized["test"]
-        direct = constrain_motion(test["human"][:, :, :-1], test["limits"], test["state"][:, 0])
+        direct = projected(test)
         report.update({
             "refine_epochs": refine_epochs, "meaning_weight": meaning_weight, "smooth_weight": smooth_weight,
             "observer_test": observer_result(observer, reviewed["test"]),
             "trajectory_test": {
-                "direct": generator_result(direct, observer, test),
+                "projected_dyaplex": generator_result(direct, observer, test),
                 "g_refined": generator_result(generator_output(generator, test), observer, test),
             },
         })
@@ -216,14 +223,43 @@ def train(manifest: Path, output: Path, seed: int, epochs: int, refine_epochs: i
             ids = torch.tensor([k for k, name in enumerate(profiles) if name == profile])
             subset = {key: values[ids] for key, values in test.items()}
             by_profile[profile] = {
-                "direct": generator_result(constrain_motion(subset["human"][:, :, :-1], subset["limits"],
-                                                            subset["state"][:, 0]), observer, subset),
+                "projected_dyaplex": generator_result(projected(subset), observer, subset),
                 "g_refined": generator_result(generator_output(generator, subset), observer, subset),
             }
         report["trajectory_test_by_profile"] = by_profile
+        report["trajectory_test_by_profile_and_intent"] = intent_table(splits["test"], optimized["test"], observer, generator, labels)
+        validation = intent_table(splits["validation"], optimized["validation"], observer, generator, labels)
+        report["trajectory_validation_by_profile_and_intent"] = validation
+        # Model selection uses validation groups only: macro mean of G's P(intent) over cells.
+        report["validation_macro_p_intent"] = {
+            policy: sum(cell[policy] for cell in validation.values()) / len(validation)
+            for policy in ("projected_streaming_upper_bound", "projected_chunk_hold", "g_refined")}
     models.update({"g": generator, "r": observer})
     write_results(output, report, metadata, models)
     return report
+
+
+def intent_table(trials: list, data: dict, observer: Observer, generator: Generator, labels: list) -> dict:
+    """R's P(intended label) per capability profile x intent, one row per chunk and profile.
+
+    Uses the "retarget" candidate rows, whose recorded motion is the human's own next 500 ms
+    retargeted with zero latency: an upper bound on the streaming projected-DyaPlex baseline.
+    """
+    rows = [trial for trial in trials if trial.intent >= 0]
+    table = {}
+    for profile in sorted({trial.profile for trial in rows}):
+        for intent in sorted({trial.intent for trial in rows}):
+            ids = torch.tensor([k for k, trial in enumerate(rows) if trial.profile == profile
+                                and trial.intent == intent and trial.condition in (None, "retarget")])
+            if not len(ids):
+                continue
+            subset = {key: values[ids] for key, values in data.items()}
+            score = lambda motion: generator_result(motion, observer, subset)["observer_mean_intended_probability"]
+            table[f"{profile} / {labels[intent]}"] = {
+                "chunks": len(ids), "projected_streaming_upper_bound": score(subset["robot"]),
+                "projected_chunk_hold": score(projected(subset)), "g_refined": score(generator_output(generator, subset)),
+            }
+    return table
 
 
 def write_results(output: Path, report: dict, metadata: dict, models: dict) -> None:
@@ -250,3 +286,26 @@ def load_models(generator_path: Path, observer_path: Path | None = None) -> tupl
         observer.load_state_dict(judge["weights"])
         observer.eval()
     return generator.eval(), observer, data
+
+
+def score(manifest: Path, generator_path: Path, observer_path: Path, output: Path) -> dict:
+    """Evaluate frozen checkpoints on a manifest that played no part in training or selection."""
+    labels, trials = load_manifest(manifest)
+    generator, observer, metadata = load_models(generator_path, observer_path)
+    if list(labels) != list(metadata["labels"]):
+        raise ValueError("Manifest labels differ from the checkpoints")
+    rows = [trial for trial in trials if trial.intent >= 0]
+    with torch.no_grad():
+        table = intent_table(rows, batch(rows), observer, generator, labels)
+        reviewed = [trial for trial in trials if trial.votes.any()]
+        report = {"manifest": str(manifest.resolve()), "sha256": file_digest(manifest),
+                  "g": str(generator_path), "r": str(observer_path),
+                  "groups": sorted({trial.group for trial in trials}),
+                  "observer": observer_result(observer, batch(reviewed)) if reviewed else None,
+                  "by_profile_and_intent": table,
+                  "macro_p_intent": {policy: sum(cell[policy] for cell in table.values()) / len(table)
+                                     for policy in ("projected_streaming_upper_bound", "projected_chunk_hold",
+                                                    "g_refined")}}
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(json.dumps(report, indent=2) + "\n")
+    return report

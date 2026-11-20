@@ -30,7 +30,7 @@ def fetch(url: str, output: Path) -> None:
     with TemporaryDirectory(dir=output.parent) as scratch:
         downloaded = Path(scratch) / output.name
         subprocess.run(["curl", "--fail", "--silent", "--show-error", "--location",
-                        "--connect-timeout", "15", "--max-time", "180", "--retry", "2",
+                        "--connect-timeout", "15", "--max-time", "300", "--retry", "4", "--retry-all-errors",
                         "--output", str(downloaded), url], check=True)
         if not downloaded.stat().st_size:
             raise ValueError(f"Empty response for {url}")
