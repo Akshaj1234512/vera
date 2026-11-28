@@ -1,0 +1,33 @@
+{
+  "pair": "V00_S0080_I00000135",
+  "agent": "V00_S0080_I00000135_P0116",
+  "partner": "V00_S0080_I00000135_P0115",
+  "shape": [
+    32,
+    2200,
+    64
+  ],
+  "dtype": "float16",
+  "token_hz": 12.5,
+  "time_base": "states[:, j] = H for conversation frame j (stream frame prompt + j, see speech.py)",
+  "voice_clip_start_s": 0.0,
+  "chunks": [
+    {
+      "frames": [
+        0,
+        2200
+      ],
+      "prompt_frames": 149
+    }
+  ],
+  "text_tokens_nonpad": 360,
+  "pins": {
+    "personaplex": "3428dfd95309a7f3c84fd93259ded0f810d1ff91",
+    "GestureLSM": "f52ac2f53dd1b99beb74bbcdbdf1a98118a36a70"
+  },
+  "checkpoint": [
+    "nvidia/personaplex-7b-v1",
+    "fdaf4090a61cb315c138a1faee287ffd6c716309"
+  ],
+  "seconds": 0.47
+}

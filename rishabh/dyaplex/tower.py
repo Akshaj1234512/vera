@@ -64,6 +64,7 @@ class SelfAttention(nn.Module):
         self.qkv = nn.Linear(cfg.d_model, 3 * cfg.d_model, bias=False)
         self.out = nn.Linear(cfg.d_model, cfg.d_model, bias=False)
         self.max_period, self.window = cfg.rope_max_period, cfg.window_tokens
+        self.partner_visible = True        # False = Table 2 'w/o Partner' ablation
 
     def forward(self, x, pos, cache=None):
         b, t, _ = x.shape
@@ -83,6 +84,12 @@ class SelfAttention(nn.Module):
         else:
             kpos = pos
         allowed = (kpos[None, :] <= pos[:, None]) & (kpos[None, :] > pos[:, None] - self.window)
+        if not self.partner_visible:
+            # [A] w/o Partner: agent ([B]) positions never attend partner ([A]) positions, in any layer,
+            # so no partner-motion information reaches the agent's predictions (Delta-User = 0 by design).
+            agent_q = (pos % C.L_STEP) >= C.K + 1
+            agent_k = (kpos % C.L_STEP) >= C.K + 1
+            allowed = allowed & ~(agent_q[:, None] & ~agent_k[None, :])
         y, _ = attend(q, k, v, allowed)
         return self.out(y.transpose(1, 2).reshape(b, t, -1))
 
@@ -99,7 +106,7 @@ class CrossAttention(nn.Module):
         self.wv = nn.Linear(cfg.speech_dim, inner, bias=False)   # W_v in R^{d_s x h_c d_c}
         self.out = nn.Linear(inner, cfg.d_model, bias=False)     # [A] back to d_m
         self.max_period = cfg.rope_max_period
-        self.window_frames = cfg.window_tokens // C.L_STEP
+        self.window_frames = cfg.speech_window_frames or cfg.window_tokens // C.L_STEP
         self.use_rope = True
         self.last_weights = None
 
@@ -172,9 +179,15 @@ class MotionTower(nn.Module):
                 nn.init.zeros_(module.bias)
 
     def ablate(self, name: str) -> "MotionTower":
-        """Table 2 ablations: no_self_attn, no_cross_attn, no_cross_rope (no_partner is a data layout)."""
+        """Table 2 ablations: no_self_attn, no_partner, no_cross_attn, no_cross_rope.
+
+        no_partner should be trained with supervise_speakers="B" (only the agent is predicted)."""
+        if name not in ("no_self_attn", "no_partner", "no_cross_attn", "no_cross_rope"):
+            raise ValueError(name)
         for block in self.blocks:
-            if name == "no_self_attn":
+            if name == "no_partner":
+                block.self_attn.partner_visible = False
+            elif name == "no_self_attn":
                 block.use_self_attn = False
             elif name == "no_cross_attn":
                 block.use_cross_attn = False
@@ -188,6 +201,10 @@ class MotionTower(nn.Module):
         return [block.cross_attn.project(h, s_pos) for block, h in zip(self.blocks, speech)]
 
     def forward(self, tokens, pos, q_frames, speech_kv, s_pos, caches=None, keep_weights=False):
+        """speech_kv: per-layer projected (k, v) from project_speech, or raw per-layer states [B, S, d_s]
+        (projected here, so DDP sees the projection inside forward)."""
+        if isinstance(speech_kv[0], torch.Tensor):
+            speech_kv = self.project_speech(speech_kv, s_pos)
         x = self.embed(tokens)
         for i, block in enumerate(self.blocks):
             x = block(x, pos, q_frames, speech_kv[i], s_pos, None if caches is None else caches[i], keep_weights)

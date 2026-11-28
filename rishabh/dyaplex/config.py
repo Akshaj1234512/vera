@@ -110,6 +110,7 @@ class TowerConfig:
     ff_scale: float = 4.125      # [A] Moshi/PersonaPlex hidden_scale; SwiGLU hidden = 2*ff/3 [I gating.py:56-63]
     rope_max_period: float = 10_000.0   # [A] Moshi max_period
     window_tokens: int = 4096    # [P §4.2] motion window == speech window (89 frames)
+    speech_window_frames: int | None = None   # None = window_tokens // 46; §5 runtime keeps 89 at 1024 tokens
     norm_eps: float = 1e-5       # [A] RMSNorm, pre-norm
     supervise: str = "body"      # "body" = 18 codes [P §4.3]; "all" = 22 codes (face variant) [A]
     supervise_speakers: str = "AB"   # [A] both speakers (X-6 in the review)

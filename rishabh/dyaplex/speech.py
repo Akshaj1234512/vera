@@ -64,10 +64,11 @@ def load_real_lm(device: str = "cuda"):
 class LayerTap:
     """Forward hooks on every main-transformer block; records [T, d] per layer per call."""
 
-    def __init__(self, lm: LMModel):
+    def __init__(self, lm: LMModel, keep_dtype: bool = False):
         self.layers = list(lm.transformer.layers)
         self.calls: list[list[torch.Tensor]] = []
         self.handles = []
+        self.keep_dtype = keep_dtype
 
     def __enter__(self):
         self.calls = []
@@ -77,7 +78,8 @@ class LayerTap:
             def hook(_module, _inputs, output):
                 if index == 0:
                     current.clear()
-                current.append(output.detach().float()[0].clone())
+                out = output.detach()[0]
+                current.append(out.clone() if self.keep_dtype else out.float().clone())
                 if index == len(self.layers) - 1:
                     self.calls.append(list(current))
             return hook
@@ -136,6 +138,23 @@ def teacher_forced_states(lm: LMModel, streams: Streams) -> torch.Tensor:
     hidden = tap.stacked()                                   # [L, N-1, d] positions 0..N-2
     zero = torch.zeros(hidden.shape[0], 1, hidden.shape[2])
     return torch.cat([zero, hidden], dim=1)
+
+
+@torch.no_grad()
+def teacher_forced_fast(lm: LMModel, tokens: torch.Tensor) -> torch.Tensor:
+    """Same states as teacher_forced_states without running the depth transformer.
+
+    tokens: [1, 17, N] long on the LM's device. Builds exactly forward_train's input
+    (initial token + delayed codes, lm.py:531) and runs only embeddings + main transformer.
+    Returns [L, N, d] in the LM's dtype (H[:, 0] = 0)."""
+    from moshi.models.lm import _delay_sequence
+    codes = tokens[:, :, 1:]
+    initial = lm._get_initial_token().expand(codes.shape[0], -1, -1)
+    delayed = torch.cat([initial, _delay_sequence(lm.delays, codes, initial)], dim=2)
+    with LayerTap(lm, keep_dtype=True) as tap:
+        lm.forward_codes(delayed[:, :, :-1])
+    hidden = torch.stack([tap.calls[0][l] for l in range(len(tap.layers))])        # [L, N-1, d]
+    return torch.cat([torch.zeros_like(hidden[:, :1]), hidden], dim=1)
 
 
 @torch.no_grad()

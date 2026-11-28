@@ -14,3 +14,4 @@ runs/dyaplex-e2e/*.pt
 runs/dyaplex-e2e/tokens/
 runs/dyaplex-e2e/*.wav
 runs/dyaplex-e2e/rig/*.wav
+runs/dyaplex-extract-tiny/*.npy

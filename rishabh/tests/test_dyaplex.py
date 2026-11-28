@@ -108,3 +108,103 @@ class CodecCausality(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ForwardKinematics(unittest.TestCase):
+    def test_identity_and_root_rotation(self):
+        from dyaplex.fk import Skeleton, forward
+        parents = np.array([-1, 0, 1, 2])
+        rest = np.array([[0, 0, 0], [0, 1, 0], [0, 2, 0], [1, 2, 0]], dtype=float)
+        sk = Skeleton(rest, parents, "synthetic")
+        ident = np.tile(axis_angle_to_6d(np.zeros(3)), (1, 4, 1))
+        self.assertTrue(np.allclose(forward(ident, sk, 4)[0], rest))
+        rot = ident.copy()
+        rot[0, 0] = axis_angle_to_6d(np.array([0, 0, np.pi / 2]))     # root 90 deg about z
+        pos = forward(rot, sk, 4)[0]
+        self.assertTrue(np.allclose(pos[1], [-1, 0, 0], atol=1e-9))
+        self.assertTrue(np.allclose(pos[3], [-2, 1, 0], atol=1e-9))
+
+
+class Metrics(unittest.TestCase):
+    def test_frechet_properties(self):
+        from dyaplex.metrics import frechet_distance, paired_fd, delta_user, derangement
+        rng = np.random.default_rng(0)
+        x = rng.normal(size=(4000, 6))
+        self.assertLess(abs(frechet_distance(x, x)), 1e-6)
+        shifted = frechet_distance(x, x + 1.0)
+        self.assertAlmostEqual(shifted, 6.0, delta=0.05)               # ||mu1-mu2||^2 = 6
+        a, b = rng.normal(size=(4000, 66)), rng.normal(size=(4000, 66))
+        self.assertLess(abs(paired_fd(a, b, b)), 1e-6)
+        self.assertAlmostEqual(delta_user(13.0, 10.0), 30.0)
+        perm = derangement(10, 1)
+        self.assertFalse((perm == np.arange(10)).any())
+
+    def test_diversity_and_beat_align(self):
+        from dyaplex.metrics import beat_align, diversity, gahr, mean_speed
+        rng = np.random.default_rng(1)
+        self.assertGreater(diversity(rng.normal(size=(20000, 66))), 0)
+        self.assertAlmostEqual(gahr(np.array([1.0, 2.0]), np.array([1.0, 2.0]), 0.3), 1.0)
+        fps, sr, seconds = 25.0, 24000, 12
+        t = np.arange(int(fps * seconds)) / fps
+        joints = np.zeros((len(t), 22, 3))
+        joints[..., 0] = np.sin(2 * np.pi * 0.5 * t)[:, None]           # every joint swings at 0.5 Hz
+        audio = 0.001 * rng.standard_normal(sr * seconds).astype(np.float32)
+        for k in range(1, seconds * 2):                                 # clicks every 0.5 s
+            audio[int(k * 0.5 * sr): int(k * 0.5 * sr) + 200] += 0.8
+        score = beat_align(joints, audio, sr, fps, mean_speed([joints], fps))
+        self.assertTrue(0.0 <= score <= 1.0)
+
+
+class Ablations(unittest.TestCase):
+    def _logits(self, model, a, b, speech, frames):
+        seq = torch.tensor(layout.interleave(a, b)[None, :-1])
+        pos = torch.arange(seq.shape[1])
+        s_pos = torch.arange(frames)
+        with torch.no_grad():
+            out, _ = model(seq, pos, pos // C.L_STEP, model.project_speech(speech, s_pos), s_pos)
+        speaker, _, _ = layout.token_role(seq.shape[1])
+        return out[0, torch.tensor(speaker == 1)]
+
+    def test_no_partner_blocks_partner_information(self):
+        from dyaplex.tower import MotionTower
+        cfg = C.TINY["tower"]
+        frames = 4
+        speech = [torch.randn(1, frames, cfg.speech_dim) for _ in range(cfg.layers)]
+        a1, a2, b = random_codes(frames, 1), random_codes(frames, 2), random_codes(frames, 3)
+        torch.manual_seed(0)
+        full = MotionTower(cfg).eval()
+        self.assertFalse(torch.equal(self._logits(full, a1, b, speech, frames), self._logits(full, a2, b, speech, frames)))
+        torch.manual_seed(0)
+        blind = MotionTower(cfg).ablate("no_partner").eval()
+        self.assertTrue(torch.equal(self._logits(blind, a1, b, speech, frames), self._logits(blind, a2, b, speech, frames)))
+
+    def test_ablation_names(self):
+        from dyaplex.tower import MotionTower
+        with self.assertRaises(ValueError):
+            MotionTower(C.TINY["tower"]).ablate("nope")
+
+
+class TrainingData(unittest.TestCase):
+    def test_fast_teacher_forced_states_match_forward_train(self):
+        from dyaplex import speech as S
+        lm = S.build_lm(C.TINY["speech"])
+        rng = np.random.default_rng(0)
+        st = S.build_streams(rng.integers(0, 2048, (8, 12)), rng.integers(0, 2048, (8, 12)), np.full(12, 3),
+                             rng.integers(0, 2048, (8, 5)), [5, 6], C.TINY["speech"])
+        slow = S.teacher_forced_states(lm, st)
+        fast = S.teacher_forced_fast(lm, torch.tensor(st.tokens[None]))
+        self.assertTrue(torch.equal(slow, fast))
+
+    def test_invalid_frames_are_not_supervised(self):
+        from dyaplex.tower_data import mask_invalid
+        frames = 3
+        seq = layout.interleave(random_codes(frames), random_codes(frames, 5))
+        labels, _ = layout.targets(seq, "all", "AB")
+        ok = np.ones(frames, bool)
+        bad_body = ok.copy()
+        bad_body[1] = False
+        info_a = {"body": ok, "face": ok, "vad": np.zeros(frames, int)}
+        info_b = {"body": bad_body, "face": ok, "vad": np.zeros(frames, int)}
+        masked = mask_invalid(labels, info_a, info_b)
+        # B's 18 body codes in frame 1 are dropped; its 4 face codes and all of A's stay
+        self.assertEqual(int((labels >= 0).sum()) - int((masked >= 0).sum()), C.BODY_CODES)

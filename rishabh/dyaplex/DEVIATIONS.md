@@ -38,6 +38,38 @@ Tags: **[A]** assumption where the paper is silent, **[S]** stand-in used only b
 - **Codec loss**: GestureLSM passes `--loss-vel 0.5` but hard-codes the velocity term to 0; we inherit 0 **[I]**.
 - **PersonaPlex revision**: `3428dfd` (last before the paper). It has context 3000 (HEAD has 2048) **[A]**.
 
+## Evaluation, ablations and state extraction
+
+- **Δ-User pairing**: the shuffled condition scores (GT partner, agent generated from a *shuffled* partner) against (GT partner, GT agent). This is the only pairing where a model that ignores partner motion gets exactly 0%, as Table 2 states for the baselines **[A]**. Shuffling is a seeded derangement **[A]**.
+- **BeatAlign**: ViBES `alignment(0.3, 7, mmae)`: speed by central differences, normalized by per-joint mean speed (refit on Seamless GT; ViBES uses a BEAT2 file), argrelextrema order 7 (kept at 25 fps), speed threshold 0.3, librosa onsets with hop 512 at 24 kHz, audio-anchored Gaussian hit rate with σ = 0.3 s, mean over the 13 upper-body joints. 2 s trimmed at both ends (ViBES: 60 frames at 30 fps) **[I/A]**.
+- **Diversity**: A2P `calculate_diversity` (10,000 random frame pairs, which needs more than 10,000 frames); the paper reports the mean **[I]**.
+- **FGD / P-FD units**: joint positions in metres; values reported ×10³ like Table 2 **[A]**.
+- **w/o Partner**: same 46-token layout; [B] positions never attend [A] positions in self-attention, and only B is supervised. Dropping the A slots would be the other reading; masking keeps the time base identical **[A]**.
+- **State extraction**:
+  - Both role orders are extracted **[A]**.
+  - Voice clip: the agent's own 10 s window with the most agent and least partner speech by VAD, normalized to −24 LUFS as `LMGen.load_voice_prompt` does **[A selection / I normalization]**.
+  - Clips longer than the context minus the prompt are cut into consecutive chunks, each with a fresh prompt **[A]**. The pinned 3000-frame context fits about 3.8 min of conversation per chunk.
+  - EPAD sits on the frame before each word's first token **[A]**.
+- **Runtime**: the §5 1024-token setting keeps the speech window at 89 frames (`speech_window_frames`) **[P]**. Precision is unstated; we measure fp32 **[A]**.
+
+## Training pipeline choices (GPU runbook)
+
+- **Splits**: train = official train, val = official dev (codec checkpoint selection, tower validation), test = official test pairs passing the audio check. `test330` = the first 330 test pairs by sha1(pair key). The paper's 330 ids are unpublished, so Table 2 numbers are not directly comparable **[A]**.
+- **Voice-clip filter**: a pair is dropped if either participant's best 10 s window is less than 50% their own speech by VAD. The paper drops ~1.4% for "no voice clip" but gives no rule **[A]**.
+- **Audio check (test only)**: both WAVs readable, RMS above −50 dBFS, at least 5% VAD speech, and length within 2 s of the motion **[A]**.
+- **Normalization**: per-part mean/std over valid train frames (the face part uses face-filtered pairs only) **[A]**.
+- **Speech states during training**: computed online per micro-batch over [prompt + chunk up to the last window]. A clip is split into chunks of (3000 − prompt) frames, each with a fresh prompt. Windows are 89 frames inside one chunk, so the window's speech history goes back to the chunk start, not just the window **[A]**.
+- **Label masking**: codes are not supervised where the owning speaker's body frame (body codes) or face frame (face codes) is invalid **[A]**. The paper only says invalid frames are excluded from training input.
+- **Precision / parallelism**: bf16 autocast, TF32, DDP; each rank holds a frozen bf16 PersonaPlex; optional activation checkpointing **[A]**.
+- **Codec held-out set**: the val split. The face codec is held out on all val participants' face-valid windows, since the 20% rule restricts training only **[A]**.
+
+## Open questions (resolve on the real run or by asking the authors)
+
+1. **BeatAlign scale.** Our ViBES-faithful BeatAlign gives about 0.5–0.6 on ground-truth smoke clips; the paper's GT row is 0.049. A unit mismatch would reproduce numbers that low (motion beats in frames against audio onsets in seconds, with σ = 0.3). Check ViBES's published numbers with its own code, and compare our GT value on the real test set.
+2. **FD numeric floor.** With zero root translation the root joint is constant, so the 66-D covariance is singular. `sqrtm` then gives a floor of about −1e-4 (−0.13 on the ×10³ scale) even for identical sets. ViBES's code behaves the same; we keep it.
+3. **Top-k**: 200 (§4.4) vs none (D.2). Evaluate both.
+4. **Speech/motion offset** (`state_offset`): 0 by our definition; sweep −1/0/+1 and compare against Fig. 5's diagonal.
+
 ## Implementation notes (no effect on the maths)
 
 - Attention uses PyTorch's fused `scaled_dot_product_attention` with a boolean mask. Masked keys still get exactly zero weight, so the causality checks hold bit-for-bit. An explicit path is kept for attention maps (Fig. 5).

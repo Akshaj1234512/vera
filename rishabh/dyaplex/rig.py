@@ -23,6 +23,7 @@ from .data import JAW_MAX_RAD, assemble, denormalize
 from .rotations import rotation_6d_to_axis_angle
 
 SOURCE = "dyaplex_tiny_e2e_smoke_untrained_scale_not_a_dyaplex_checkpoint"
+SOURCE_TRAINED = "dyaplex_reproduction_checkpoint"
 
 
 def human_channels(parts: dict[str, np.ndarray], stats: dict) -> tuple[np.ndarray, dict]:
@@ -42,11 +43,11 @@ def human_channels(parts: dict[str, np.ndarray], stats: dict) -> tuple[np.ndarra
     return human, {"jaw_angle_rad": jaw_angle, "head_deg": angles}
 
 
-def write_teacher(path: Path, human: np.ndarray, start_s: float = 0.0) -> Path:
+def write_teacher(path: Path, human: np.ndarray, start_s: float = 0.0, source: str = SOURCE) -> Path:
     from speech_ai.human import HUMAN_CHANNELS
     times = start_s + np.arange(len(human)) / C.MOTION_FPS + 1e-6
     np.savez_compressed(path, time_s=times, channels=np.array(HUMAN_CHANNELS), human=human,
-                        human_valid=np.ones(len(human), np.float32), source=np.array(SOURCE))
+                        human_valid=np.ones(len(human), np.float32), source=np.array(source))
     return path
 
 
@@ -63,7 +64,8 @@ def crop_wav(src: Path, dst: Path, start_s: float, seconds: float) -> Path:
     return dst
 
 
-def drive_rig(teacher: Path, partner_wav: Path, agent_wav: Path, out: Path, video: bool = True) -> dict:
+def drive_rig(teacher: Path, partner_wav: Path, agent_wav: Path, out: Path, video: bool = True,
+              title: str = "DyaPlex tiny e2e (untrained-scale) -> projected retarget") -> dict:
     """gr-prepare + gr-replay --policy projected --profile full on the MuJoCo rig."""
     from speech_ai.gr_data import prepare_stream
     from speech_ai.gr_runtime import replay
@@ -72,5 +74,5 @@ def drive_rig(teacher: Path, partner_wav: Path, agent_wav: Path, out: Path, vide
     prepared = prepare_stream(partner_wav, agent_wav, False, teacher, None, stream)
     report = replay(stream, None, None, "full", out, None, "projected",
                     out / "rig.mp4" if video else None, agent_wav if video else None,
-                    "DyaPlex tiny e2e (untrained-scale) -> projected retarget", "mujoco")
+                    title, "mujoco")
     return {"prepare": prepared, "replay": report, "stream": str(stream)}

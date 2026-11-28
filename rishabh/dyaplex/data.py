@@ -30,7 +30,7 @@ from scipy.signal import savgol_filter
 from scipy.spatial.transform import Rotation, Slerp
 
 from . import config as C
-from .rotations import axis_angle_to_6d, resample_linear, resample_rotations, x_rotation
+from .rotations import axis_angle_to_6d, resample_linear, resample_rotations, rotation_6d_to_axis_angle, x_rotation
 
 BASE = "https://dl.fbaipublicfiles.com/seamless_interaction"
 SMPLH_EXTRAS = ("global_orient", "left_hand_pose", "right_hand_pose", "translation")
@@ -95,23 +95,17 @@ def probe_video(label: str, split: str, file_id: str) -> dict:
 # --------------------------------------------------------------------------- #
 # Participant loading and preprocessing
 # --------------------------------------------------------------------------- #
-def _load(folder: Path, name: str) -> np.ndarray:
-    return np.load(folder / f"{name}.npy", allow_pickle=False)
-
-
-def _movement(folder: Path) -> tuple[np.ndarray, np.ndarray]:
+def _movement(arrays: dict, name: str) -> tuple[np.ndarray, np.ndarray]:
     """movement_v4 if at least half its frames are valid, else movement v1 (same rule as speech_ai.seamless)."""
-    found = []
-    for version in ("movement_v4", "movement"):
-        if (folder / f"{version}_FAUValue.npy").is_file() and (folder / f"{version}_is_valid.npy").is_file():
-            found.append((_load(folder, f"{version}_FAUValue").astype(np.float64),
-                          _load(folder, f"{version}_is_valid").reshape(-1) > 0))
+    found = [(arrays[f"{v}:FAUValue"].astype(np.float64), arrays[f"{v}:is_valid"].reshape(-1) > 0)
+             for v in ("movement_v4", "movement") if f"{v}:FAUValue" in arrays and f"{v}:is_valid" in arrays]
     if not found:
-        raise FileNotFoundError(f"{folder}: no movement FAU values")
+        raise FileNotFoundError(f"{name}: no movement FAU values")
     for fau, valid in found:
         if valid.mean() >= 0.5:
             return fau, valid
     return max(found, key=lambda item: item[1].mean())
+
 
 
 def _fill_invalid(aa: np.ndarray, valid: np.ndarray) -> np.ndarray:
@@ -168,7 +162,7 @@ class Participant:
     face: np.ndarray          # [T25, 56]
     valid: np.ndarray         # [T25] body validity (smplh:is_valid)
     face_valid: np.ndarray    # [T25] non-zero face frames
-    audio: Path               # 16 kHz mono WAV
+    audio: Path | None        # participant WAV (48 kHz official, 16 kHz local copies)
     vad: list[tuple[float, float]]
     body_pose_aa: np.ndarray  # [T25, 21, 3] local body rotations (for head channels)
     stats: dict = field(default_factory=dict)
@@ -178,21 +172,54 @@ class Participant:
         return len(self.valid)
 
 
-def load_participant(folder: Path) -> Participant:
-    body = _load(folder, "smplh_body_pose").reshape(-1, 21, 3).astype(np.float64)
-    root = _load(folder, "smplh_global_orient").reshape(-1, 1, 3).astype(np.float64)
-    left = _load(folder, "smplh_left_hand_pose").reshape(-1, 15, 3).astype(np.float64)
-    right = _load(folder, "smplh_right_hand_pose").reshape(-1, 15, 3).astype(np.float64)
-    trans = _load(folder, "smplh_translation").reshape(-1, 3).astype(np.float64)
-    valid = _load(folder, "smplh_is_valid").reshape(-1) > 0
-    fau, fau_valid = _movement(folder)
-    frames = min(len(body), len(root), len(left), len(right), len(trans), len(valid), len(fau), len(fau_valid))
+def face_from_spectre(path: Path, frames30: int) -> tuple[np.ndarray, np.ndarray]:
+    """dyaplex face-extract output -> 56-D face at the source frame rate [P C.2].
+
+    Keeps the 6D jaw (from SPECTRE's axis-angle jaw) and the 50 FLAME expression coefficients,
+    drops the head rotation (redundant with SMPL-H joint 0). Failed frames stay all-zero [P C.2]."""
+    with np.load(path, allow_pickle=False) as z:
+        jaw, exp, ok = z["jaw_aa"].astype(np.float64), z["exp"].astype(np.float64), z["valid"].astype(bool)
+    n = min(frames30, len(jaw))
+    face = np.zeros((frames30, 6 + C.EXPRESSION_DIM))
+    face[:n, :6] = axis_angle_to_6d(jaw[:n])
+    face[:n, 6:] = exp[:n, :C.EXPRESSION_DIM]
+    valid = np.zeros(frames30, bool)
+    valid[:n] = ok[:n] & (np.abs(face[:n]).sum(1) > 0)
+    face[~valid] = 0.0
+    return face, valid
+
+
+def load_record(rec, face_mode: str = "auto") -> Participant:
+    """Seamless participant (sources.Record) -> 25 fps DyaPlex features.
+
+    face_mode: "spectre" (needs rec.face), "standin" (Seamless FAUs, see face_standin), or "auto"
+    (SPECTRE when available, else stand-in). The source is recorded in stats["face_source"]."""
+    a = rec.arrays
+    need = ("smplh:body_pose", "smplh:global_orient", "smplh:left_hand_pose", "smplh:right_hand_pose",
+            "smplh:translation", "smplh:is_valid")
+    missing = [k for k in need if k not in a]
+    if missing:
+        raise FileNotFoundError(f"{rec.file_id}: missing {missing}")
+    body = a["smplh:body_pose"].reshape(-1, 21, 3).astype(np.float64)
+    root = a["smplh:global_orient"].reshape(-1, 1, 3).astype(np.float64)
+    left = a["smplh:left_hand_pose"].reshape(-1, 15, 3).astype(np.float64)
+    right = a["smplh:right_hand_pose"].reshape(-1, 15, 3).astype(np.float64)
+    trans = a["smplh:translation"].reshape(-1, 3).astype(np.float64)
+    valid = a["smplh:is_valid"].reshape(-1) > 0
+    use_spectre = face_mode == "spectre" or (face_mode == "auto" and rec.face is not None)
+    if use_spectre and rec.face is None:
+        raise FileNotFoundError(f"{rec.file_id}: no SPECTRE face file")
+    fau, fau_valid = (None, None) if use_spectre else _movement(a, rec.file_id)
+    lengths = [len(body), len(root), len(left), len(right), len(trans), len(valid)]
+    if fau is not None:
+        lengths += [len(fau), len(fau_valid)]
+    frames = min(lengths)
     body, root, left, right, trans = body[:frames], root[:frames], left[:frames], right[:frames], trans[:frames]
     finite = np.isfinite(np.concatenate([body.reshape(frames, -1), root.reshape(frames, -1), left.reshape(frames, -1),
                                          right.reshape(frames, -1), trans], axis=1)).all(1)
     valid = valid[:frames] & finite
     if valid.sum() < 8:                                   # [P C.1] fewer than 8 valid frames -> drop
-        raise ValueError(f"{folder.name}: {int(valid.sum())} valid frames (< 8)")
+        raise ValueError(f"{rec.file_id}: {int(valid.sum())} valid frames (< 8)")
     smplh = np.concatenate([root, body, left, right], axis=1)             # [T, 52, 3]
     smplh = _fill_invalid(np.nan_to_num(smplh), valid)
     # 180 deg about x maps the recovered pose into the SMPL-X world frame [P D.3]
@@ -212,11 +239,23 @@ def load_participant(folder: Path) -> Participant:
     src = np.arange(t25) / C.MOTION_FPS * C.SEAMLESS_FPS
     lo, hi = np.floor(src).astype(int), np.minimum(np.ceil(src).astype(int), frames - 1)
     valid25 = valid[lo] & valid[hi]
-    face_ok = fau_valid[:frames]
-    face_valid25 = face_ok[lo] & face_ok[hi]
-    # build the face at 25 fps from resampled FAUs (resampling 6D linearly would break orthonormality)
-    fau25 = resample_linear(fau[:frames], C.SEAMLESS_FPS, C.MOTION_FPS)[:t25]
-    face25 = face_standin(fau25, face_valid25)
+    if use_spectre:
+        face30, face_ok = face_from_spectre(rec.face, frames)
+        face_valid25 = face_ok[lo] & face_ok[hi]
+        # interpolate jaw in rotation space, expression linearly
+        jaw25 = resample_rotations(rotation_6d_to_axis_angle(face30[:, :6])[:, None], C.SEAMLESS_FPS,
+                                   C.MOTION_FPS)[:t25, 0]
+        exp25 = resample_linear(face30[:, 6:], C.SEAMLESS_FPS, C.MOTION_FPS)[:t25]
+        face25 = np.column_stack([axis_angle_to_6d(jaw25), exp25])
+        face25[~face_valid25] = 0.0
+        face_source = "spectre_flame"
+    else:
+        face_ok = fau_valid[:frames]
+        face_valid25 = face_ok[lo] & face_ok[hi]
+        # build the face at 25 fps from resampled FAUs (resampling 6D linearly would break orthonormality)
+        fau25 = resample_linear(fau[:frames], C.SEAMLESS_FPS, C.MOTION_FPS)[:t25]
+        face25 = face_standin(fau25, face_valid25)
+        face_source = FACE_SOURCE
     # SMPL-H -> SMPL-X joint order [A mapping, review §3.1]
     aa = np.zeros((t25, C.SMPLX_JOINTS, 3))
     aa[:, :22] = smplh25[:, :22]
@@ -232,17 +271,19 @@ def load_participant(folder: Path) -> Participant:
     trans_v[1:, 2] = trans25[1:, 2] - trans25[:-1, 2]
     trans_v[0, 2] = trans_v[1, 2]
     trans_v[:, 1] = trans25[:, 1]
-    vad = []
-    if (folder / "vad.jsonl").is_file():
-        for line in (folder / "vad.jsonl").read_text().splitlines():
-            if line.strip():
-                row = json.loads(line)
-                vad.append((float(row["start"]), float(row["end"])))
-    return Participant(folder.name, pose6d.astype(np.float32), trans25.astype(np.float32), trans_v.astype(np.float32),
-                       face25.astype(np.float32), valid25, face_valid25, folder / "audio-16k.wav", vad,
+    return Participant(rec.file_id, pose6d.astype(np.float32), trans25.astype(np.float32), trans_v.astype(np.float32),
+                       face25.astype(np.float32), valid25, face_valid25, rec.wav, list(rec.vad),
                        aa[:, 1:22].astype(np.float32),
                        {"frames_30": int(frames), "frames_25": int(t25), "valid_30": float(valid.mean()),
-                        "zero_face_fraction": float(1 - face_valid25.mean())})
+                        "zero_face_fraction": float(1 - face_valid25.mean()), "face_source": face_source})
+
+
+def load_participant(folder: Path, face_mode: str = "auto") -> Participant:
+    """Per-participant folder (FeatureLayout) -> Participant. Kept for the e2e test."""
+    from .sources import FeatureLayout
+    folder = Path(folder)
+    return load_record(FeatureLayout(folder.parent).load(folder.name), face_mode)
+
 
 
 # --------------------------------------------------------------------------- #

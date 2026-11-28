@@ -1,0 +1,49 @@
+{
+  "device": "mps",
+  "machine": "arm64",
+  "torch": "2.15.0",
+  "tower_params_M": 671.193089,
+  "paper_ms": {
+    "speech_tower": 30,
+    "motion_4096": 173,
+    "motion_1024": 80,
+    "decoders": 0.8
+  },
+  "motion": [
+    {
+      "window_tokens": 4096,
+      "speech_window_frames": 89,
+      "kv_tokens_at_end": 4096,
+      "ms_per_frame_median": 4540.638332997332,
+      "ms_per_frame": [
+        4449.3,
+        4648.9,
+        4588.7,
+        4462.7,
+        4540.6
+      ],
+      "tokens_per_frame": 46,
+      "sampled_per_frame": 22
+    },
+    {
+      "window_tokens": 1024,
+      "speech_window_frames": 89,
+      "kv_tokens_at_end": 1024,
+      "ms_per_frame_median": 2486.4017500076443,
+      "ms_per_frame": [
+        2588.3,
+        2582.3,
+        2466.2,
+        2482.4,
+        2486.4
+      ],
+      "tokens_per_frame": 46,
+      "sampled_per_frame": 22
+    }
+  ],
+  "decoders": {
+    "history_tokens": 16,
+    "ms_per_frame": 6.958783350273734
+  },
+  "speech_tower": "not measured: needs nvidia/personaplex-7b-v1 (gated) on a CUDA GPU"
+}

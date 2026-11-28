@@ -1,0 +1,13 @@
+# DyaPlex training on CUDA (torch 2.4.1 installed separately from the PyTorch CUDA index; see scripts/gpu/00_env.sh)
+numpy>=1.26,<2.2            # PersonaPlex pin
+scipy>=1.11
+safetensors>=0.4,<0.5       # PersonaPlex pin
+huggingface-hub>=0.24,<0.25 # PersonaPlex pin
+einops==0.7
+sentencepiece==0.2
+sphn>=0.1.4,<0.2
+tqdm
+librosa>=0.10               # BeatAlign onsets
+matplotlib>=3.8
+pillow>=10
+mujoco>=3.1                 # only for `dyaplex infer` rig videos

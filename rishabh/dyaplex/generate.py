@@ -127,11 +127,13 @@ class Session:
         self.fed = 0                     # tokens already pushed through the cached model
         self.window = self.model.cfg.window_tokens
         self.timing = {"tower_s": 0.0, "tokens_sampled": 0}
+        self.device = next(self.model.parameters()).device
+        self.speech = [h.to(self.device) for h in self.speech]
         self._held: list[int] = []
 
     def _speech_kv(self):
         frames = self.frame + 1
-        s_pos = torch.arange(frames)
+        s_pos = torch.arange(frames, device=self.device)
         return self.model.project_speech([h[:, :frames] for h in self.speech], s_pos), s_pos
 
     @torch.no_grad()
@@ -143,16 +145,24 @@ class Session:
         self.tokens.extend(new)
         kv, s_pos = self._speech_kv()
         if self.use_cache:
-            pos = torch.arange(self.fed, len(self.tokens))
-            x = torch.tensor([self.tokens[self.fed:]])
+            pos = torch.arange(self.fed, len(self.tokens), device=self.device)
+            x = torch.tensor([self.tokens[self.fed:]], device=self.device)
             self.fed = len(self.tokens)
         else:
             lo = max(0, len(self.tokens) - self.window)
-            pos = torch.arange(lo, len(self.tokens))
-            x = torch.tensor([self.tokens[lo:]])
+            pos = torch.arange(lo, len(self.tokens), device=self.device)
+            x = torch.tensor([self.tokens[lo:]], device=self.device)
         logits, _ = self.model(x, pos, pos // C.L_STEP, kv, s_pos, self.caches)
+        out = logits[0, -1].float().cpu()
         self.timing["tower_s"] += time.perf_counter() - start
-        return logits[0, -1]
+        return out
+
+    @torch.no_grad()
+    def prefill(self, a_codes: np.ndarray, b_codes: np.ndarray) -> None:
+        """Teacher-force whole frames (e.g. to fill the context before timing steady-state frames)."""
+        for a, b in zip(a_codes, b_codes):
+            self._push([C.TAG_A] + [int(c) for c in a] + [C.TAG_B] + [int(c) for c in b])
+            self.frame += 1
 
     def _sample(self, logits: torch.Tensor, slot: int) -> int:
         band = torch.tensor(layout.SLOT_PART[slot])
